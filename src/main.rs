@@ -8,9 +8,9 @@ mod xor;
 //Modules containing challenge solutions
 mod challenge01;
 mod challenge02;
+mod challenge03;
 
 fn main() {
-    println!("Hello, world!");
 }
 
 

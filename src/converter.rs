@@ -206,8 +206,6 @@ pub fn bytes_to_base64(bytes: Vec<u8>) -> String {
     }
     let block_len = bytes.len() - (2 - pad + 1); //Points to first byte in final 3-byte block
 
-    println!("pad: {}, block_len: {}, total len: {}", pad, block_len, bytes.len());
-
     for i in 0..bytes.len() / 3 {
         let d1 = (bytes[3*i] >> 2) & 0x3f;
         let d2 = ((bytes[3*i] << 4) & 0x3f) + ((bytes[3*i+1] >> 4) & 0x0f);
