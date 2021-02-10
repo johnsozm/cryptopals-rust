@@ -242,7 +242,7 @@ pub fn bytes_to_base64(bytes: Vec<u8>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::converter::*;
+    use super::*;
 
     #[test]
     fn test_hex_to_bytes_base() {
@@ -261,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected="Illegal hex digit h")]
     fn test_hex_to_bytes_error() {
         let hex = "0fh1";
         hex_to_bytes(hex);
@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
+    #[should_panic(expected="Illegal base64 digit <")]
     fn test_base64_to_bytes_error() {
         let s = "<>!*''#";
         base64_to_bytes(s);
