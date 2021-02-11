@@ -5,7 +5,7 @@ static LETTER_FREQUENCIES: [f64; 26] = [0.08167, 0.01492, 0.02782, 0.04253, 0.12
 
 ///XOR's two equal-length byte strings together.
 ///Panics if the byte strings are not of equal length.
-pub fn xor_bytes(byte1: Vec<u8>, byte2: Vec<u8>) -> Vec<u8> {
+pub fn xor_bytes(byte1: &Vec<u8>, byte2: &Vec<u8>) -> Vec<u8> {
     if byte1.len() != byte2.len() {
         panic!("Byte strings must be of equal length!")
     }
@@ -17,7 +17,7 @@ pub fn xor_bytes(byte1: Vec<u8>, byte2: Vec<u8>) -> Vec<u8> {
 
 ///XOR's two byte strings together.
 ///If lengths are unequal, the shorter string is repeated to bring them to the same length.
-pub fn xor_repeating(byte1: Vec<u8>, byte2: Vec<u8>) -> Vec<u8> {
+pub fn xor_repeating(byte1: &Vec<u8>, byte2: &Vec<u8>) -> Vec<u8> {
     return if byte1.len() == byte2.len() {
         xor_bytes(byte1, byte2)
     } else if byte1.len() < byte2.len() {
@@ -27,19 +27,19 @@ pub fn xor_repeating(byte1: Vec<u8>, byte2: Vec<u8>) -> Vec<u8> {
         for i in 0..byte1.len() {
             repeated.push(byte2[i % byte2.len()]);
         }
-        xor_bytes(byte1, repeated)
+        xor_bytes(byte1, &repeated)
     }
 }
 
 ///Performs frequency analysis to guess a single-byte xor key.
 ///Returns best key and its frequency score.
-pub fn guess_single_byte_xor(ciphertext: Vec<u8>) -> (u8, f64) {
+pub fn guess_single_byte_xor(ciphertext: &Vec<u8>) -> (u8, f64) {
     let mut best_key: u8 = 0;
     let mut best_score = 999.999;
 
     //Try each possible byte key
     for i in 0..255 {
-        let candidate: Vec<u8> = xor_repeating(ciphertext.clone(), vec![i]);
+        let candidate: Vec<u8> = xor_repeating(ciphertext, &vec![i]);
         let mut freq = [0.0;27];
 
         //Calculate letter frequencies for the deciphered text
@@ -99,7 +99,7 @@ mod tests {
         let b1: Vec<u8> = vec![0x1c, 0x01, 0x11];
         let b2: Vec<u8> = vec![0x68, 0x69, 0x74];
         let x: Vec<u8> = vec![0x74, 0x68, 0x65];
-        assert_eq!(xor_bytes(b1, b2), x);
+        assert_eq!(xor_bytes(&b1, &b2), x);
     }
 
     #[test]
@@ -107,7 +107,7 @@ mod tests {
     fn test_xor_bytes_mismatch() {
         let b1: Vec<u8> = vec![0x1c, 0x01, 0x11];
         let b2: Vec<u8> = vec![0x68, 0x69];
-        xor_bytes(b1, b2);
+        xor_bytes(&b1, &b2);
     }
 
     #[test]
@@ -115,6 +115,6 @@ mod tests {
         let b1: Vec<u8> = vec![0x1c, 0x01, 0x11];
         let b2: Vec<u8> = vec![0x68, 0x68];
         let x: Vec<u8> = vec![0x74, 0x69, 0x79];
-        assert_eq!(xor_repeating(b1, b2), x);
+        assert_eq!(xor_repeating(&b1, &b2), x);
     }
 }
