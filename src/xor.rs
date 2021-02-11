@@ -112,7 +112,7 @@ fn hamming_distance(byte1: &Vec<u8>, byte2: &Vec<u8>) -> usize {
 
 ///Guesses the most probable key length for this ciphertext, up to 1/4 the total length.
 ///Panics if the given ciphertext is under 8 bytes since this analysis will be impossible.
-pub fn guess_key_length(ciphertext: Vec<u8>) -> usize {
+fn guess_key_length(ciphertext: &Vec<u8>) -> usize {
     if ciphertext.len() < 8 {
         panic!("Ciphertext is too short for this analysis!");
     }
@@ -146,6 +146,26 @@ pub fn guess_key_length(ciphertext: Vec<u8>) -> usize {
     }
 
     return best_length;
+}
+
+///Guesses the multi-byte key used to XOR-encrypt a message
+pub fn guess_multi_byte_xor(ciphertext: &Vec<u8>) -> Vec<u8> {
+    let key_length = guess_key_length(&ciphertext);
+    let mut sub_messages: Vec<Vec<u8>> = vec![vec![]; key_length];
+    let mut modulus = 0;
+
+    for byte in ciphertext {
+        sub_messages[modulus].push(*byte);
+        modulus = (modulus + 1) % key_length;
+    }
+
+    let mut key: Vec<u8> = vec![];
+
+    for i in 0..key_length {
+        key.push(guess_single_byte_xor(&sub_messages[i]).0);
+    }
+
+    return key;
 }
 
 #[cfg(test)]
@@ -208,14 +228,23 @@ mod tests {
         let key2: Vec<u8> = vec![66, 12, 200, 120, 97, 58];
         let ciphertext1 = xor_repeating(&plaintext, &key1);
         let ciphertext2 = xor_repeating(&plaintext, &key2);
-        assert_eq!(guess_key_length(ciphertext1), 4);
-        assert_eq!(guess_key_length(ciphertext2), 6)
+        assert_eq!(guess_key_length(&ciphertext1), 4);
+        assert_eq!(guess_key_length(&ciphertext2), 6)
     }
 
     #[test]
     #[should_panic(expected="Ciphertext is too short for this analysis!")]
     fn test_guess_key_length_too_short() {
         let bytes: Vec<u8> = vec![1, 2, 3, 4];
-        guess_key_length(bytes);
+        guess_key_length(&bytes);
+    }
+
+    #[test]
+    fn test_guess_multi_byte_xor() {
+        let plaintext = crate::converter::ascii_to_bytes("Letter frequency is simply the number of times letters of the alphabet appear on average in written language. Letter frequency analysis dates back to the Arab mathematician Al-Kindi (c. 801–873 AD), who formally developed the method to break ciphers. Letter frequency analysis gained importance in Europe with the development of movable type in 1450 AD, where one must estimate the amount of type required for each letterform. Linguists use letter frequency analysis as a rudimentary technique for language identification, where it is particularly effective as an indication of whether an unknown writing system is alphabetic, syllabic, or ideographic.");
+        let key: Vec<u8> = vec![66, 12, 200, 120];
+        let ciphertext = xor_repeating(&plaintext, &key);
+
+        assert_eq!(guess_multi_byte_xor(&ciphertext), key);
     }
 }
