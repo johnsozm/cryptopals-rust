@@ -90,22 +90,62 @@ pub fn guess_single_byte_xor(ciphertext: &Vec<u8>) -> (u8, f64) {
     return (best_key, best_score);
 }
 
-fn hamming_distance(byte1: &Vec<u8>, byte2: &Vec<u8>) -> i32 {
+///Computes the Hamming distance between two equal-length byte strings.
+///Panics if the strings are not of equal length.
+fn hamming_distance(byte1: &Vec<u8>, byte2: &Vec<u8>) -> usize {
     if byte1.len() != byte2.len() {
         panic!("Byte strings must be of equal length!");
     }
 
-    let mut distance: i32 = 0;
+    let mut distance: usize = 0;
 
     for (b1, b2) in byte1.iter().zip(byte2) {
         let b = b1 ^ b2;
 
         for i in 0..8 {
-            distance += ((b >> i) & 0x01) as i32;
+            distance += ((b >> i) & 0x01) as usize;
         }
     }
 
     return distance;
+}
+
+///Guesses the most probable key length for this ciphertext, up to 1/4 the total length.
+///Panics if the given ciphertext is under 8 bytes since this analysis will be impossible.
+pub fn guess_key_length(ciphertext: Vec<u8>) -> usize {
+    if ciphertext.len() < 8 {
+        panic!("Ciphertext is too short for this analysis!");
+    }
+
+    let mut best_distance = 999.999;
+    let mut best_length = 0;
+
+    //For each possible length, compute the normalized Hamming distance.
+    for length in 2..=ciphertext.len() / 4 {
+        let slices = [ciphertext[0..length].to_vec(), ciphertext[length..2*length].to_vec(),
+            ciphertext[2*length..3*length].to_vec(), ciphertext[3*length..4*length].to_vec()];
+
+        let total_distance = hamming_distance(&slices[0], &slices[1])
+            + hamming_distance(&slices[0], &slices[2])
+            + hamming_distance(&slices[0], &slices[3])
+            + hamming_distance(&slices[1], &slices[2])
+            + hamming_distance(&slices[1], &slices[3])
+            + hamming_distance(&slices[2], &slices[3]);
+
+        let normalized_distance = (total_distance as f64 / length as f64) / 6.0;
+
+        if normalized_distance < best_distance {
+            best_distance = normalized_distance;
+            best_length = length;
+        }
+
+        //Prevent considering 2n, 3n, etc. 3 seems to be a reasonable cutoff for the distance.
+        if best_distance < 3.0 {
+            return best_length;
+        }
+    }
+
+    return best_length;
 }
 
 #[cfg(test)]
@@ -159,5 +199,23 @@ mod tests {
         let b1: Vec<u8> = vec![2, 3, 4, 5];
         let b2: Vec<u8> = vec![1, 3, 5];
         hamming_distance(&b1, &b2);
+    }
+
+    #[test]
+    fn test_guess_key_length() {
+        let plaintext = crate::converter::ascii_to_bytes("Letter frequency is simply the number of times letters of the alphabet appear on average in written language. Letter frequency analysis dates back to the Arab mathematician Al-Kindi (c. 801–873 AD), who formally developed the method to break ciphers. Letter frequency analysis gained importance in Europe with the development of movable type in 1450 AD, where one must estimate the amount of type required for each letterform. Linguists use letter frequency analysis as a rudimentary technique for language identification, where it is particularly effective as an indication of whether an unknown writing system is alphabetic, syllabic, or ideographic.");
+        let key1: Vec<u8> = vec![66, 12, 200, 120];
+        let key2: Vec<u8> = vec![66, 12, 200, 120, 97, 58];
+        let ciphertext1 = xor_repeating(&plaintext, &key1);
+        let ciphertext2 = xor_repeating(&plaintext, &key2);
+        assert_eq!(guess_key_length(ciphertext1), 4);
+        assert_eq!(guess_key_length(ciphertext2), 6)
+    }
+
+    #[test]
+    #[should_panic(expected="Ciphertext is too short for this analysis!")]
+    fn test_guess_key_length_too_short() {
+        let bytes: Vec<u8> = vec![1, 2, 3, 4];
+        guess_key_length(bytes);
     }
 }
