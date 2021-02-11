@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 
 //Utility modules
+mod aes;
 mod converter;
 mod xor;
 
