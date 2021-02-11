@@ -117,4 +117,13 @@ mod tests {
         let x: Vec<u8> = vec![0x74, 0x69, 0x79];
         assert_eq!(xor_repeating(&b1, &b2), x);
     }
+
+    #[test]
+    fn test_guess_single_byte_xor() {
+        let b1: Vec<u8> = crate::converter::ascii_to_bytes("Test plaintext string");
+        let b2: Vec<u8> = vec![12 as u8];
+        let ciphertext = xor_repeating(&b1, &b2);
+
+        assert_eq!(guess_single_byte_xor(&ciphertext).0, 12);
+    }
 }
