@@ -90,6 +90,24 @@ pub fn guess_single_byte_xor(ciphertext: &Vec<u8>) -> (u8, f64) {
     return (best_key, best_score);
 }
 
+fn hamming_distance(byte1: &Vec<u8>, byte2: &Vec<u8>) -> i32 {
+    if byte1.len() != byte2.len() {
+        panic!("Byte strings must be of equal length!");
+    }
+
+    let mut distance: i32 = 0;
+
+    for (b1, b2) in byte1.iter().zip(byte2) {
+        let b = b1 ^ b2;
+
+        for i in 0..8 {
+            distance += ((b >> i) & 0x01) as i32;
+        }
+    }
+
+    return distance;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,7 +122,7 @@ mod tests {
 
     #[test]
     #[should_panic(expected="Byte strings must be of equal length!")]
-    fn test_xor_bytes_mismatch() {
+    fn test_xor_bytes_mismatched_lengths() {
         let b1: Vec<u8> = vec![0x1c, 0x01, 0x11];
         let b2: Vec<u8> = vec![0x68, 0x69];
         xor_bytes(&b1, &b2);
@@ -125,5 +143,21 @@ mod tests {
         let ciphertext = xor_repeating(&b1, &b2);
 
         assert_eq!(guess_single_byte_xor(&ciphertext).0, 12);
+    }
+
+    #[test]
+    fn test_hamming_distance() {
+        let b1 = crate::converter::ascii_to_bytes("this is a test");
+        let b2 = crate::converter::ascii_to_bytes("wokka wokka!!!");
+
+        assert_eq!(hamming_distance(&b1, &b2), 37);
+    }
+
+    #[test]
+    #[should_panic(expected="Byte strings must be of equal length!")]
+    fn test_hamming_distance_mismatched_lengths() {
+        let b1: Vec<u8> = vec![2, 3, 4, 5];
+        let b2: Vec<u8> = vec![1, 3, 5];
+        hamming_distance(&b1, &b2);
     }
 }
