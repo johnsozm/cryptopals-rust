@@ -83,7 +83,7 @@ fn byte_to_base_64_digit(digit: u8) -> char {
 pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
     //Guarantee the hex string has an even number of digits
     if hex.len() % 2 != 0 {
-        let mut padded = "0".to_owned();
+        let mut padded = String::from("0");
         padded.push_str(hex);
         return hex_to_bytes(&padded);
     }
@@ -146,7 +146,7 @@ pub fn bytes_to_ascii(bytes: Vec<u8>) -> String {
 //Decodes a Base64 string to the corresponding bytes
 pub fn base64_to_bytes(base64: &str) -> Vec<u8> {
     if base64.len() % 4 != 0 {
-        let mut padded = base64.to_owned();
+        let mut padded = String::from(base64);
         padded.push_str(&"=".repeat(4 - base64.len() % 4));
         return base64_to_bytes(&padded);
     }

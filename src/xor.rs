@@ -58,11 +58,10 @@ pub fn guess_single_byte_xor(ciphertext: &Vec<u8>) -> (u8, f64) {
                 || byte as char == '?'
                 || byte as char == '!'
                 || byte as char == '/'
-                || byte as char == '\n'
-                || byte as char == '\r'
-                || byte as char == '('
-                || byte as char == ')'
-                || byte as char == ' ' {
+                || byte as char == ' '
+                || byte as char == '-'
+                || byte as char == ':'
+                || byte as char == ';'{
                 continue;
             }
             else {
@@ -140,7 +139,7 @@ fn guess_key_length(ciphertext: &Vec<u8>) -> usize {
         }
 
         //Prevent considering 2n, 3n, etc. 3 seems to be a reasonable cutoff for the distance.
-        if best_distance < 3.0 {
+        if best_distance < 2.9 {
             return best_length;
         }
     }
