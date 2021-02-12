@@ -1,6 +1,8 @@
 use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockCipher, NewBlockCipher};
 use aes::Aes128;
+use std::collections::HashSet;
+use crate::converter::bytes_to_hex;
 
 ///Encrypts plaintext using AES-ECB and the given 16-byte key.
 ///Will panic if key is not 16 bytes or plaintext is not a multiple of 16 bytes.
@@ -50,6 +52,21 @@ pub fn decrypt_ecb(ciphertext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     }
 
     return plaintext;
+}
+
+///Detects use of ECB mode by searching for repeated blocks.
+///Will panic if ciphertext is not a multiple of 16 bytes.
+pub fn detect_ecb(ciphertext: &Vec<u8>) -> bool {
+    if ciphertext.len() % 16 != 0 {
+        panic!("Partial block of length {} passed for AES analysis!", ciphertext.len() % 16);
+    }
+
+    let mut unique: HashSet<String> = HashSet::new();
+    for i in 0..ciphertext.len() / 16 {
+        unique.insert(bytes_to_hex(ciphertext[16*i..16*(i+1)].to_vec()));
+    }
+
+    return unique.len() < (ciphertext.len() / 16);
 }
 
 #[cfg(test)]
@@ -108,5 +125,23 @@ mod tests {
         let ciphertext = crate::converter::hex_to_bytes("6743C3D1519AB4F2CD9A78AB09");
 
         decrypt_ecb(&ciphertext, &key);
+    }
+
+    #[test]
+    fn test_detect_ecb() {
+        let key = crate::converter::hex_to_bytes("E8E9EAEBEDEEEFF0F2F3F4F5F7F8F9FA");
+        let plaintext = crate::converter::ascii_to_bytes("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        let ciphertext1 = encrypt_ecb(&plaintext, &key);
+        let ciphertext2 = crate::converter::ascii_to_bytes("sdfll81u23ljs0udpadlfksaj;93kjf1");
+
+        assert!(detect_ecb(&ciphertext1));
+        assert!(!detect_ecb(&ciphertext2));
+    }
+
+    #[test]
+    #[should_panic(expected="Partial block of length 13 passed for AES analysis!")]
+    fn test_detect_ecb_not_block() {
+        let ciphertext = crate::converter::ascii_to_bytes("AAAAAAAAAAAAA");
+        detect_ecb(&ciphertext);
     }
 }
