@@ -3,7 +3,7 @@ use aes::cipher::{BlockCipher, NewBlockCipher};
 use aes::Aes128;
 
 ///Encrypts plaintext using AES-ECB and the given 16-byte key.
-///Will panic if key is not 16 bytes.
+///Will panic if key is not 16 bytes or plaintext is not a multiple of 16 bytes.
 pub fn encrypt_ecb(plaintext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
@@ -28,7 +28,7 @@ pub fn encrypt_ecb(plaintext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
 }
 
 ///Decrypts ciphertext using AES-ECB and the given 16-byte key.
-///Will panic if key is not 16 bytes.
+///Will panic if key is not 16 bytes or ciphertext is not a multiple of 16 bytes.
 pub fn decrypt_ecb(ciphertext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
