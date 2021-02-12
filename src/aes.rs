@@ -66,6 +66,8 @@ pub fn detect_ecb(ciphertext: &Vec<u8>) -> bool {
     return unique.len() < (ciphertext.len() / 16);
 }
 
+///Encrypts plaintext using AES-CBC mode and the given key and IV.
+///Will panic if key is not 16 bytes, IV is not 16 bytes, or plaintext is not a multiple of 16 bytes.
 pub fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
@@ -90,6 +92,8 @@ pub fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> 
     return ciphertext;
 }
 
+///Decrypts ciphertext using AES-CBC mode and the given key and IV.
+///Will panic if key is not 16 bytes, IV is not 16 bytes, or ciphertext is not a multiple of 16 bytes.
 pub fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
