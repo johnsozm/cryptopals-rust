@@ -26,10 +26,9 @@ fn encrypt_random_padding(message: &Vec<u8>) -> (Vec<u8>, bool) {
     }
 
     //Randomly decide whether to use ECB or CBC mode
-    if random() {
-        return (encrypt_ecb(&plaintext, &key), true);
-    }
-    else {
+    return if random() {
+        (encrypt_ecb(&plaintext, &key), true)
+    } else {
         let mut iv: Vec<u8> = vec![];
 
         //Generate random IV
@@ -37,12 +36,12 @@ fn encrypt_random_padding(message: &Vec<u8>) -> (Vec<u8>, bool) {
             iv.push(random());
         }
 
-        return (encrypt_cbc(&plaintext, &key, &iv), false);
+        (encrypt_cbc(&plaintext, &key, &iv), false)
     }
 }
 
 fn challenge11() -> bool {
-    //Ensure there are at least 2 duplicate bytes
+    //Ensure there are at least 2 duplicate blocks
     let message = ascii_to_bytes(&"A".repeat(48));
 
     //Try many random encryptions to ensure robustness

@@ -17,7 +17,7 @@ fn challenge7() -> String {
     let key = ascii_to_bytes("YELLOW SUBMARINE");
     let plaintext = decrypt_ecb(&ciphertext, &key);
 
-    return bytes_to_ascii(plaintext);
+    return bytes_to_ascii(&plaintext);
 }
 
 #[cfg(test)]

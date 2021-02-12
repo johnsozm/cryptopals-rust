@@ -2,7 +2,6 @@ use aes::cipher::generic_array::GenericArray;
 use aes::cipher::{BlockCipher, NewBlockCipher};
 use aes::Aes128;
 use std::collections::HashSet;
-use crate::converter::bytes_to_hex;
 use crate::xor::xor_bytes;
 
 ///Encrypts plaintext using AES-ECB and the given 16-byte key.
@@ -58,9 +57,9 @@ pub fn detect_ecb(ciphertext: &Vec<u8>) -> bool {
         panic!("Partial block of length {} passed for AES analysis!", ciphertext.len() % 16);
     }
 
-    let mut unique: HashSet<String> = HashSet::new();
+    let mut unique: HashSet<Vec<u8>> = HashSet::new();
     for i in 0..ciphertext.len() / 16 {
-        unique.insert(bytes_to_hex(ciphertext[16*i..16*(i+1)].to_vec()));
+        unique.insert(ciphertext[16*i..16*(i+1)].to_vec());
     }
 
     return unique.len() < (ciphertext.len() / 16);

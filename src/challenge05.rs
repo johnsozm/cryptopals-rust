@@ -5,7 +5,7 @@ fn challenge5() -> String {
     let plaintext = ascii_to_bytes("Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal");
     let key = ascii_to_bytes("ICE");
     let ciphertext = xor_repeating(&plaintext, &key);
-    return bytes_to_hex(ciphertext);
+    return bytes_to_hex(&ciphertext);
 }
 
 #[cfg(test)]

@@ -18,7 +18,7 @@ fn challenge10() -> String {
     let iv: Vec<u8> = vec![0; 16];
     let plaintext = decrypt_cbc(&ciphertext, &key, &iv);
 
-    return bytes_to_ascii(plaintext);
+    return bytes_to_ascii(&plaintext);
 }
 
 #[cfg(test)]

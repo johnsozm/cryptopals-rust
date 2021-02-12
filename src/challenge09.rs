@@ -4,7 +4,7 @@ use crate::padding::pkcs7_pad;
 fn challenge9() -> String {
     let message = ascii_to_bytes("YELLOW SUBMARINE");
     let padded = pkcs7_pad(&message, 20);
-    return bytes_to_ascii(padded);
+    return bytes_to_ascii(&padded);
 }
 
 #[cfg(test)]

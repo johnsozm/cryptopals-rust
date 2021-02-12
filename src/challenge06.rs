@@ -17,7 +17,7 @@ fn challenge6() -> String {
     let key = guess_multi_byte_xor(&ciphertext);
 
     let plaintext = xor_repeating(&ciphertext, &key);
-    return bytes_to_ascii(plaintext);
+    return bytes_to_ascii(&plaintext);
 }
 
 #[cfg(test)]

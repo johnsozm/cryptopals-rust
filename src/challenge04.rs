@@ -19,7 +19,7 @@ fn challenge4() -> String {
         }
     }
 
-    return bytes_to_ascii(best_line);
+    return bytes_to_ascii(&best_line);
 }
 
 #[cfg(test)]

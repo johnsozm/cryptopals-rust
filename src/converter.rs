@@ -107,7 +107,7 @@ pub fn hex_to_bytes(hex: &str) -> Vec<u8> {
 }
 
 ///Takes a byte vector and parses into a hex string
-pub fn bytes_to_hex(bytes: Vec<u8>) -> String {
+pub fn bytes_to_hex(bytes: &Vec<u8>) -> String {
     let mut hex: String = String::from("");
 
     for byte in bytes {
@@ -133,11 +133,11 @@ pub fn ascii_to_bytes(ascii: &str) -> Vec<u8> {
 }
 
 //Processes a byte vector into the corresponding ASCII string
-pub fn bytes_to_ascii(bytes: Vec<u8>) -> String {
+pub fn bytes_to_ascii(bytes: &Vec<u8>) -> String {
     let mut ascii: String = String::from("");
 
     for byte in bytes {
-        ascii.push(byte as char);
+        ascii.push(*byte as char);
     }
 
     return ascii;
@@ -198,7 +198,7 @@ pub fn base64_to_bytes(base64: &str) -> Vec<u8> {
 }
 
 //Formats bytes as a Base64 string
-pub fn bytes_to_base64(bytes: Vec<u8>) -> String {
+pub fn bytes_to_base64(bytes: &Vec<u8>) -> String {
     let mut base64: String = String::from("");
     let mut pad= 3 - (bytes.len() % 3);
     if pad == 3 {
@@ -270,7 +270,7 @@ mod tests {
         let hex = "af31";
         let bytes: Vec<u8> = vec![175, 49];
 
-        assert_eq!(bytes_to_hex(bytes), hex);
+        assert_eq!(bytes_to_hex(&bytes), hex);
     }
 
     #[test]
@@ -278,7 +278,7 @@ mod tests {
         let hex = "f31";
         let bytes: Vec<u8> = vec![15, 49];
 
-        assert_eq!(bytes_to_hex(bytes), hex);
+        assert_eq!(bytes_to_hex(&bytes), hex);
     }
 
     #[test]
@@ -294,7 +294,7 @@ mod tests {
         let test = "Hello";
         let bytes: Vec<u8> = vec![72, 101, 108, 108, 111];
 
-        assert_eq!(bytes_to_ascii(bytes), test);
+        assert_eq!(bytes_to_ascii(&bytes), test);
     }
 
     #[test]
@@ -327,8 +327,8 @@ mod tests {
         let s1 = "YW55IGNhcm5hbCBwbGVhc3Vy";
         let s2 = "YW55IGNhcm5hbCBwbGVhc3VyZQ==";
         let s3 = "YW55IGNhcm5hbCBwbGVhc3VyZS4=";
-        assert_eq!(bytes_to_base64(b1), s1);
-        assert_eq!(bytes_to_base64(b2), s2);
-        assert_eq!(bytes_to_base64(b3), s3);
+        assert_eq!(bytes_to_base64(&b1), s1);
+        assert_eq!(bytes_to_base64(&b2), s2);
+        assert_eq!(bytes_to_base64(&b3), s3);
     }
 }
