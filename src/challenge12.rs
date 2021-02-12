@@ -16,7 +16,7 @@ fn challenge12() -> String {
     //Determine length of secret message
     let mut pad_length = 1;
     let base_length = oracle(&vec![]).len();
-    let mut test_length = 0;
+    let mut test_length;
     loop {
         let test_message = ascii_to_bytes(&"A".repeat(pad_length));
         test_length = oracle(&test_message).len();
@@ -27,19 +27,41 @@ fn challenge12() -> String {
     }
 
     let block_size = test_length - base_length;
-    let message_length = base_length + 1 - pad_length;
+    let message_length = base_length - pad_length;
     let mut plaintext: Vec<u8> = vec![];
     let mut last_bytes: Vec<u8> = vec![];
 
-    for i in 0..block_size {
+    for _i in 0..block_size {
         last_bytes.push(0);
     }
 
     //Determine message characters one at a time
     for i in 0..message_length {
-        //TODO: Get encryption of known block ending in that character
-        //TODO: Construct trial block consisting of known text + unknown character
-        //TODO: Try each value of unknown character until we get a match
+        //Get encryption of known block ending in next character
+        let mut pad: Vec<u8> = vec![];
+        for _j in 0..(block_size - (i % block_size) - 1) {
+            pad.push(0);
+        }
+
+        let ciphertext = oracle(&pad);
+        let target_block_number = i / block_size;
+        let target_block = ciphertext[target_block_number * block_size..(target_block_number + 1) * block_size].to_vec();
+
+        //Construct trial block consisting of known text + unknown character
+        for j in 0..block_size - 1 {
+            last_bytes[j] = last_bytes[j + 1];
+        }
+
+        //Try each value of unknown character until we get a match
+        for byte in 0..=255 {
+            last_bytes[block_size - 1] = byte;
+            let test_block = oracle(&last_bytes)[0..block_size].to_vec();
+
+            if test_block == target_block {
+                plaintext.push(byte);
+                break;
+            }
+        }
     }
 
     return bytes_to_ascii(&plaintext);
