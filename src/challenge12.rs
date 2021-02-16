@@ -26,12 +26,12 @@ fn challenge12() -> String {
         pad_length += 1;
     }
 
-    let block_size = test_length - base_length;
+    let block_length = test_length - base_length;
     let message_length = base_length - pad_length;
     let mut plaintext: Vec<u8> = vec![];
     let mut last_bytes: Vec<u8> = vec![];
 
-    for _i in 0..block_size {
+    for _i in 0..block_length {
         last_bytes.push(0);
     }
 
@@ -39,23 +39,23 @@ fn challenge12() -> String {
     for i in 0..message_length {
         //Get encryption of known block ending in next character
         let mut pad: Vec<u8> = vec![];
-        for _j in 0..(block_size - (i % block_size) - 1) {
+        for _j in 0..(block_length - (i % block_length) - 1) {
             pad.push(0);
         }
 
         let ciphertext = oracle(&pad);
-        let target_block_number = i / block_size;
-        let target_block = ciphertext[target_block_number * block_size..(target_block_number + 1) * block_size].to_vec();
+        let target_block_number = i / block_length;
+        let target_block = ciphertext[target_block_number * block_length..(target_block_number + 1) * block_length].to_vec();
 
         //Construct trial block consisting of known text + unknown character
-        for j in 0..block_size - 1 {
+        for j in 0..block_length - 1 {
             last_bytes[j] = last_bytes[j + 1];
         }
 
         //Try each value of unknown character until we get a match
         for byte in 0..=255 {
-            last_bytes[block_size - 1] = byte;
-            let test_block = oracle(&last_bytes)[0..block_size].to_vec();
+            last_bytes[block_length - 1] = byte;
+            let test_block = oracle(&last_bytes)[0..block_length].to_vec();
 
             if test_block == target_block {
                 plaintext.push(byte);
