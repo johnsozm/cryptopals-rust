@@ -3,8 +3,15 @@ use crate::converter::{base64_to_bytes, ascii_to_bytes, bytes_to_ascii};
 use crate::aes::{encrypt_ecb, detect_ecb};
 use crate::padding::pkcs7_pad;
 
-//Consistent encryption key for use by oracle
-static KEY: [u8; 16] = [178, 172, 142, 53, 180, 30, 112, 114, 26, 148, 243, 132, 91, 229, 253, 113];
+lazy_static! {
+    static ref KEY: Vec<u8> = {
+        let mut k: Vec<u8> = vec![];
+        for _i in 0..16 {
+            k.push(random());
+        }
+        k
+    };
+}
 
 fn oracle(message: &Vec<u8>) -> Vec<u8> {
     let prefix_length: i32 = random();
@@ -17,7 +24,7 @@ fn oracle(message: &Vec<u8>) -> Vec<u8> {
 
     plaintext.append(&mut message.clone());
     plaintext.append(&mut secret);
-    return encrypt_ecb(&pkcs7_pad(&plaintext, 16), &KEY.to_vec());
+    return encrypt_ecb(&pkcs7_pad(&plaintext, 16), &KEY);
 }
 
 pub fn challenge14() -> String {

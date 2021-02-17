@@ -1,6 +1,10 @@
 //Most code is "dead" since it is only referenced by tests
 #![allow(dead_code)]
 
+//Allow for initializing random static variables
+#[macro_use]
+extern crate lazy_static;
+
 //Utility modules for the challenges to use
 mod aes;
 mod converter;

@@ -1,15 +1,23 @@
 use crate::converter::{base64_to_bytes, bytes_to_ascii, ascii_to_bytes};
 use crate::aes::encrypt_ecb;
 use crate::padding::pkcs7_pad;
+use rand::random;
 
-//Consistent encryption key for use by oracle
-static KEY: [u8; 16] = [144, 80, 52, 5, 120, 207, 103, 233, 21, 219, 92, 141, 112, 25, 173, 186];
+lazy_static! {
+    static ref KEY: Vec<u8> = {
+        let mut k: Vec<u8> = vec![];
+        for _i in 0..16 {
+            k.push(random());
+        }
+        k
+    };
+}
 
 fn oracle(message: &Vec<u8>) -> Vec<u8> {
     let mut plaintext = message.clone();
     let mut secret = base64_to_bytes("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK");
     plaintext.append(&mut secret);
-    return encrypt_ecb(&pkcs7_pad(&plaintext, 16), &KEY.to_vec());
+    return encrypt_ecb(&pkcs7_pad(&plaintext, 16), &KEY);
 }
 
 fn challenge12() -> String {

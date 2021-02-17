@@ -1,12 +1,20 @@
 use crate::aes::{decrypt_ecb, encrypt_ecb, detect_ecb};
 use crate::converter::{bytes_to_ascii, ascii_to_bytes};
 use crate::padding::{pkcs7_pad, pkcs7_unpad};
+use rand::random;
 
-//Consistent encryption key for use by profile generator & reader
-static KEY: [u8; 16] = [13, 19, 252, 206, 207, 46, 148, 90, 206, 15, 132, 246, 244, 121, 39, 131];
+lazy_static! {
+    static ref KEY: Vec<u8> = {
+        let mut k: Vec<u8> = vec![];
+        for _i in 0..16 {
+            k.push(random());
+        }
+        k
+    };
+}
 
 fn is_admin(profile: Vec<u8>) -> bool {
-    let plaintext = pkcs7_unpad(&decrypt_ecb(&profile, &KEY.to_vec()));
+    let plaintext = pkcs7_unpad(&decrypt_ecb(&profile, &KEY));
     let ascii = bytes_to_ascii(&plaintext.unwrap());
     return ascii.contains("&role=admin");
 }

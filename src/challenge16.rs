@@ -1,10 +1,24 @@
 use crate::padding::{pkcs7_pad, pkcs7_unpad};
 use crate::converter::{ascii_to_bytes, bytes_to_ascii};
 use crate::aes::{encrypt_cbc, decrypt_cbc};
+use rand::random;
 
-//Consistent encryption key and IV for use by oracle
-static KEY: [u8; 16] = [203, 24, 228, 68, 97, 200, 72, 185, 91, 149, 156, 223, 119, 183, 5, 173];
-static IV: [u8; 16] = [37, 20, 51, 240, 87, 18, 32, 84, 140, 108, 34, 189, 113, 179, 99, 12];
+lazy_static! {
+    static ref KEY: Vec<u8> = {
+        let mut k: Vec<u8> = vec![];
+        for _i in 0..16 {
+            k.push(random());
+        }
+        k
+    };
+    static ref IV: Vec<u8> = {
+        let mut k: Vec<u8> = vec![];
+        for _i in 0..16 {
+            k.push(random());
+        }
+        k
+    };
+}
 
 ///Creates user token
 fn create_token(user_data: &str) -> Vec<u8> {
@@ -14,12 +28,12 @@ fn create_token(user_data: &str) -> Vec<u8> {
     token.push_str(";comment2=%20like%20a%20pound%20of%20bacon");
 
     let padded = pkcs7_pad(&ascii_to_bytes(&token), 16);
-    return encrypt_cbc(&padded, &KEY.to_vec(), &IV.to_vec());
+    return encrypt_cbc(&padded, &KEY, &IV);
 }
 
 //Decrypts user token and detects whether it contains ";admin=true;"
 fn is_admin(token: &Vec<u8>) -> bool {
-    let decrypted = decrypt_cbc(&token, &KEY.to_vec(), &IV.to_vec());
+    let decrypted = decrypt_cbc(&token, &KEY, &IV);
     let as_string = bytes_to_ascii(&pkcs7_unpad(&decrypted).unwrap());
     return as_string.contains(";admin=true;");
 }
