@@ -14,6 +14,7 @@ fn challenge15_bad() -> Result<Vec<u8>, PaddingError> {
 mod tests {
     use crate::challenge15::{challenge15_good, challenge15_bad};
 
+    #[test]
     fn test_solution() {
         let expected: Vec<u8> = vec![12, 1, 15, 18, 19];
         match challenge15_good() {

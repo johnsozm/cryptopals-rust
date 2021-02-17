@@ -18,27 +18,51 @@ fn create_token(user_data: &str) -> Vec<u8> {
 }
 
 //Decrypts user token and detects whether it contains ";admin=true;"
-fn is_admin(token: Vec<u8>) -> bool {
+fn is_admin(token: &Vec<u8>) -> bool {
     let decrypted = decrypt_cbc(&token, &KEY.to_vec(), &IV.to_vec());
     let as_string = bytes_to_ascii(&pkcs7_unpad(&decrypted).unwrap());
     return as_string.contains(";admin=true;");
 }
 
 fn challenge16() -> Vec<u8> {
-    //TODO: Determine block length being used
-    //TODO: For each possible offset from prefix (0..block_length)
-        //TODO: Construct payload as padding + ":admin<true:" and encrypt
-        //TODO: For each possible location of plaintext in resulting message:
-            //TODO: Flip low bits of correct bytes in previous block to turn :/< into ;/=
-            //TODO: Check if message passes admin test
-    return vec![];
+    //Determine block length being used
+    let mut test_data= String::from("");
+    let mut len_token = create_token("");
+    let base_length = len_token.len();
+    while len_token.len() == base_length {
+        test_data.push('A');
+        len_token = create_token(&test_data);
+    }
+    let block_length = len_token.len() - base_length;
+
+    //Since we don't know the details of token construction, exhaustively search payload offsets
+    for offset in 0..block_length {
+        let mut payload = String::from("A".repeat(offset));
+        payload.push_str(":admin<true:");
+        let ciphertext = create_token(&payload);
+
+        //Since we don't know details of token construction, exhaustively attempt bit-flipping
+        for block_index in 0..(ciphertext.len() / block_length) - 1 {
+            let mut malicious_ciphertext = ciphertext.clone();
+            malicious_ciphertext[block_index*block_length] ^= 0x01;
+            malicious_ciphertext[(block_index*block_length)+6] ^= 0x1;
+            malicious_ciphertext[(block_index*block_length)+11] ^= 0x01;
+
+            if is_admin(&malicious_ciphertext) {
+                return malicious_ciphertext;
+            }
+        }
+    }
+
+    return vec![]; //Default return if nothing is found
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
     fn test_solution() {
-        assert!(is_admin(challenge16()));
+        assert!(is_admin(&challenge16()));
     }
 }

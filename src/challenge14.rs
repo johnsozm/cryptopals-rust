@@ -146,7 +146,6 @@ pub fn challenge14() -> String {
             if ciphertext[(post_prefix_index+1) * block_length..(post_prefix_index+2)*block_length].to_vec() == target_block {
                 message.push(byte);
                 last_bytes[block_length - 1] = byte;
-                println!("Byte {} = {}", i, byte);
                 break;
             }
         }
