@@ -200,6 +200,9 @@ pub fn base64_to_bytes(base64: &str) -> Vec<u8> {
 //Formats bytes as a Base64 string
 pub fn bytes_to_base64(bytes: &Vec<u8>) -> String {
     let mut base64: String = String::from("");
+    if bytes.len() == 0 {
+        return base64;
+    }
     let mut pad= 3 - (bytes.len() % 3);
     if pad == 3 {
         pad = 0;
