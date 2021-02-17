@@ -27,6 +27,9 @@ pub fn pkcs7_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError> {
     let pad_length: usize = message[message.len() - 1] as usize;
 
     //Verify last pad_length bytes have value pad_length
+    if pad_length > message.len() || pad_length == 0 {
+        return Err(PaddingError::BadPKCSPadding);
+    }
     for i in message.len()-pad_length..message.len() {
         if message[i] as usize != pad_length {
             return Err(PaddingError::BadPKCSPadding);
