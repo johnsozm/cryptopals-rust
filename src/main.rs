@@ -30,6 +30,9 @@ mod challenge15;
 mod challenge16;
 mod challenge17;
 mod challenge18;
+//No code for challenge 19 - this was some limited ad-hoc fiddling
+mod challenge20;
+
 
 fn main() {
 }
