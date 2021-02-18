@@ -8,6 +8,7 @@ extern crate lazy_static;
 //Utility modules for the challenges to use
 mod aes;
 mod converter;
+mod mt19937;
 mod padding;
 mod xor;
 
