@@ -27,13 +27,13 @@ mod challenge11;
 mod challenge12;
 mod challenge13;
 mod challenge14;
-mod challenge15;
+//Challenge 15 was implementing the PKCS#7 pad/unpad routines - no additional code needed
 mod challenge16;
 mod challenge17;
 mod challenge18;
 //No code for challenge 19 - this was some limited ad-hoc fiddling
 mod challenge20;
-
+//Challenge 21 was implementing the mt19937 module - no additional code needed
 
 fn main() {
 }
