@@ -95,10 +95,33 @@ pub fn untemper(output: u32) -> u32 {
     return y;
 }
 
+///Encrypts plaintext using a twister instance as a key stream.
+pub fn encrypt_mt19937(plaintext: &Vec<u8>, key: u16) -> Vec<u8> {
+    let mut ciphertext = plaintext.clone();
+    let mut twister = MT19937::from_seed(key as u32);
+    for i in 0..plaintext.len() {
+        ciphertext[i] ^= twister.extract_number() as u8;
+    }
+
+    return ciphertext;
+}
+
+///Decrypts ciphertext using a twister instance as a key stream.
+pub fn decrypt_mt19937(ciphertext: &Vec<u8>, key: u16) -> Vec<u8> {
+    let mut plaintext = ciphertext.clone();
+    let mut twister = MT19937::from_seed(key as u32);
+    for i in 0..plaintext.len() {
+        plaintext[i] ^= twister.extract_number() as u8;
+    }
+
+    return plaintext;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand::random;
+    use crate::converter::ascii_to_bytes;
 
     #[test]
     fn test_generation() {
@@ -127,5 +150,13 @@ mod tests {
             y = y ^ (y >> L);
             assert_eq!(untemper(y), state);
         }
+    }
+
+    #[test]
+    fn test_encrypt_decrypt() {
+        let message = ascii_to_bytes("Yahoo! Test message!");
+        let ciphertext = encrypt_mt19937(&message, 12097);
+        let plaintext = decrypt_mt19937(&ciphertext, 12097);
+        assert_eq!(plaintext, message);
     }
 }
