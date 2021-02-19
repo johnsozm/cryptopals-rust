@@ -37,6 +37,7 @@ mod challenge20;
 mod challenge22;
 mod challenge23;
 mod challenge24;
+mod challenge25;
 
 fn main() {
 }
