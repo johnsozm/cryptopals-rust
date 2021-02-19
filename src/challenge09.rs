@@ -11,6 +11,7 @@ fn challenge9() -> String {
 mod tests {
     use super::*;
 
+    #[test]
     fn test_solution() {
         assert_eq!(challenge9(), "YELLOW SUBMARINE\u{4}\u{4}\u{4}\u{4}");
     }
