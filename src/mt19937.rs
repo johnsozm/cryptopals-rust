@@ -30,7 +30,7 @@ impl MT19937 {
 
         ret.state[0] = seed;
         for i in 1..N-1 {
-            ret.state[i] = F.overflowing_mul(ret.state[i-1] ^ (ret.state[i-1] >> (W-2))).0 + i as u32
+            ret.state[i] = F.overflowing_mul(ret.state[i-1] ^ (ret.state[i-1] >> (W-2))).0.overflowing_add(i as u32).0;
         }
         return ret;
     }

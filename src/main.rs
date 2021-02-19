@@ -36,6 +36,7 @@ mod challenge20;
 //Challenge 21 was implementing the mt19937 module - no additional code needed
 mod challenge22;
 mod challenge23;
+mod challenge24;
 
 fn main() {
 }
