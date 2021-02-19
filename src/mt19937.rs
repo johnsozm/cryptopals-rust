@@ -44,6 +44,7 @@ impl MT19937 {
     }
 
     ///Gets the next pseudorandom number from the generator
+    ///Will panic if generator was initialized with a bad index.
     pub fn extract_number(&mut self) -> u32 {
         if self.index == N {
             self.twist();
@@ -74,9 +75,30 @@ impl MT19937 {
     }
 }
 
+///Untempers an MT19937 output value to determine the internal state that generated it
+pub fn untemper(output: u32) -> u32 {
+    //Undo y = y ^ (y >> L)
+    let y3 = output ^ (output >> L);
+
+    //Undo y = y ^ ((y << T) & C)
+    let y2 = y3 ^ (y3.overflowing_shl(T).0 & C);
+
+    //Undo y = y ^ ((y << S) & B)
+    let mut y1 = y2 ^ (y2.overflowing_shl(S).0 & B);
+    y1 = y1 ^ (y1.overflowing_shl(2*S).0 & 0x94284000 as u32);
+    y1 = y1 ^ (y1.overflowing_shl(4*S).0 & 0x10000000 as u32);
+
+    //Undo y = y ^ ((y >> U) & D)
+    let mut y = y1 ^ ((y1 >> U) & D);
+    y = y ^ ((y >> 2*U) & D);
+
+    return y;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::random;
 
     #[test]
     fn test_generation() {
@@ -91,5 +113,19 @@ mod tests {
         assert_eq!(mt.extract_number(), 0x3895AFE1);
         assert_eq!(mt.extract_number(), 0xA1E24BBA);
         assert_eq!(mt.extract_number(), 0x4EE4092B);
+    }
+
+    #[test]
+    fn test_untemper() {
+        //Test with a series of random internal state values
+        for _i in 0..100 {
+            let state: u32 = random();
+            let mut y: u32 = state;
+            y = y ^ ((y >> U) & D);
+            y = y ^ ((y.overflowing_shl(S)).0 & B);
+            y = y ^ ((y.overflowing_shl(T)).0 & C);
+            y = y ^ (y >> L);
+            assert_eq!(untemper(y), state);
+        }
     }
 }
