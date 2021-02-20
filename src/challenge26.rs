@@ -33,6 +33,22 @@ fn is_admin(token: &Vec<u8>) -> bool {
 }
 
 fn challenge26() -> Vec<u8> {
+    //Generate token to corrupt
+    let token = create_token(":admin<true:");
+
+    //Try all possible offsets for the corruption
+    for offset in 0..token.len() - 11 {
+        let mut payload = token.clone();
+        payload[offset] ^= 0x01;
+        payload[offset+6] ^= 0x01;
+        payload[offset+11] ^= 0x01;
+
+        if is_admin(&payload) {
+            return payload;
+        }
+    }
+
+    //Default return if corruption fails
     return vec![];
 }
 
