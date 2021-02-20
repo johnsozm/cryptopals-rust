@@ -31,7 +31,7 @@ fn create_token(user_data: &str) -> Vec<u8> {
     return encrypt_cbc(&padded, &KEY, &IV);
 }
 
-//Decrypts user token and detects whether it contains ";admin=true;"
+///Decrypts user token and detects whether it contains ";admin=true;"
 fn is_admin(token: &Vec<u8>) -> bool {
     let decrypted = decrypt_cbc(&token, &KEY, &IV);
     let as_string = bytes_to_ascii(&pkcs7_unpad(&decrypted).unwrap());

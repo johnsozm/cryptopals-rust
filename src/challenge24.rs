@@ -7,6 +7,7 @@ lazy_static! {
     static ref KEY: u16 = random();
 }
 
+///Encrypts and returns 10-29 random bytes || data using static key
 fn generate_ciphertext(data: &Vec<u8>) -> Vec<u8> {
     let mut plaintext: Vec<u8> = vec![];
     let prefix_len: usize = random();
@@ -19,6 +20,7 @@ fn generate_ciphertext(data: &Vec<u8>) -> Vec<u8> {
     return encrypt_mt19937(&plaintext, *KEY);
 }
 
+///Portion of the challenge that cracks MT19937 seed
 fn challenge24_break() -> u16 {
     let plaintext = ascii_to_bytes(&"A".repeat(14));
     let target_ciphertext = generate_ciphertext(&plaintext);
@@ -42,6 +44,7 @@ fn challenge24_break() -> u16 {
     return 0;
 }
 
+///Portion of challenge that determines if a recent timestamp was used to generate a random token.
 fn challenge24_check(token: &Vec<u8>) -> bool {
     let time = SystemTime::now().duration_since(UNIX_EPOCH);
     let timestamp = time.unwrap().as_millis() as u32;

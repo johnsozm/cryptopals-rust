@@ -35,6 +35,7 @@ lazy_static! {
     };
 }
 
+///Selects a random plaintext, then pads and encrypts it.
 fn get_random_ciphertext() -> (Vec<u8>, Vec<u8>) {
     let index: usize = random();
     let plaintext = pkcs7_pad(&base64_to_bytes(SECRETS[index % 10]), 16);

@@ -2,6 +2,7 @@ use crate::mt19937::MT19937;
 use rand::random;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+///Gets simulated past timestamp
 fn get_ts() -> u32 {
     let time = SystemTime::now().duration_since(UNIX_EPOCH);
     let timestamp = time.unwrap().as_millis() as u32;

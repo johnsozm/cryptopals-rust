@@ -28,6 +28,7 @@ lazy_static! {
     };
 }
 
+///Implements the edit operation (allows for extension of ciphertext)
 fn edit(ciphertext: &Vec<u8>, offset: usize, new_text: &Vec<u8>) -> Vec<u8> {
     let mut plaintext = decrypt_ctr(&ciphertext, &KEY, *NONCE);
 
@@ -43,6 +44,7 @@ fn edit(ciphertext: &Vec<u8>, offset: usize, new_text: &Vec<u8>) -> Vec<u8> {
     return encrypt_ctr(&plaintext, &KEY, *NONCE);
 }
 
+///Gets initial encryption of the message
 fn get_original_ciphertext() -> Vec<u8> {
     return encrypt_ctr(&CLEARTEXT, &KEY, *NONCE);
 }
