@@ -12,6 +12,7 @@ mod alphabetic;
 mod aes;
 mod converter;
 mod hash;
+mod mac;
 mod mt19937;
 mod padding;
 mod xor;
@@ -44,6 +45,7 @@ mod challenge24;
 mod challenge25;
 mod challenge26;
 mod challenge27;
+//Challenge 28 was implementing secret-prefix MAC - no additional code needed
 
 fn main() {
 }
