@@ -12,6 +12,13 @@ impl Hash {
             Hash::MD4 => digest_md4(&message)
         }
     }
+
+    pub fn block_length(&self) -> usize {
+        return match self {
+            Hash::SHA1 => 64,
+            Hash::MD4 => 64
+        }
+    }
 }
 
 ///Generates the SHA-1 digest of a message
