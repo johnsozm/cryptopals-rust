@@ -14,8 +14,13 @@ impl Hash {
 
 ///Generates the SHA-1 digest of a message
 fn digest_sha1(message: &Vec<u8>) -> Vec<u8> {
-    let mut h: [u32;5] = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0];
-    let ml: u64 = (message.len() * 8) as u64;
+    digest_sha1_from_state(message, [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0], 0)
+}
+
+///Generates the SHA-1 digest of a message from some specific initial state
+pub fn digest_sha1_from_state(message: &Vec<u8>, h_init: [u32;5], total_length: u64) -> Vec<u8> {
+    let mut h: [u32;5] = h_init;
+    let ml: u64 = if total_length == 0 {(message.len() * 8) as u64} else {total_length};
 
     //Pre-process message for digest
     let mut processed_message = message.clone();

@@ -2,15 +2,14 @@ use crate::hash::Hash;
 
 ///MAC message structure - contains message, signature, and the hash function used
 pub struct MAC {
-    message: Vec<u8>,
-    signature: Vec<u8>
+    pub message: Vec<u8>,
+    pub signature: Vec<u8>
 }
 
 ///Creates a secret-prefix MAC for the given message using the given key + hash function
 pub fn create_prefix_mac(message: &Vec<u8>, key: &Vec<u8>, hash_function: Hash) -> MAC {
     let mut concat = key.clone();
     concat.append(&mut message.clone());
-
 
     return MAC {
         message: message.clone(),
@@ -19,7 +18,7 @@ pub fn create_prefix_mac(message: &Vec<u8>, key: &Vec<u8>, hash_function: Hash) 
 }
 
 ///Validates a secret-prefix MAC for the given message using the given key + hash function
-pub fn verify_prefix_max(mac: MAC, key: &Vec<u8>, hash_function: Hash) -> bool {
+pub fn verify_prefix_max(mac: &MAC, key: &Vec<u8>, hash_function: Hash) -> bool {
     let mut concat = key.clone();
     concat.append(&mut mac.message.clone());
     let expected_hash = hash_function.digest(&concat);
@@ -59,7 +58,7 @@ mod tests {
         };
         mac2.signature[0] += 5;
 
-        assert!(verify_prefix_max(mac, &key, Hash::SHA1));
-        assert!(!verify_prefix_max(mac2, &key, Hash::SHA1));
+        assert!(verify_prefix_max(&mac, &key, Hash::SHA1));
+        assert!(!verify_prefix_max(&mac2, &key, Hash::SHA1));
     }
 }

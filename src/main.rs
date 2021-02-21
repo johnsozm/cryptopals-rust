@@ -46,6 +46,7 @@ mod challenge25;
 mod challenge26;
 mod challenge27;
 //Challenge 28 was implementing secret-prefix MAC - no additional code needed
+mod challenge29;
 
 fn main() {
 }
