@@ -100,14 +100,12 @@ pub fn digest_sha1_from_state(message: &Vec<u8>, h_init: [u32;5], total_length: 
 
 ///Generates the MD4 digest of a message
 fn digest_md4(message: &Vec<u8>) -> Vec<u8> {
-    return digest_md4_from_state(&message, [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476]);
+    return digest_md4_from_state(&message, [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476], 0);
 }
 
-pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4]) -> Vec<u8> {
+pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4], total_length: u64) -> Vec<u8> {
     let mut padded_message = message.clone();
-    let ml = (message.len() * 8) as u64;
-    let ml_low = ml as u32;
-    let ml_high = (ml >> 32) as u32;
+    let ml: u64 = if total_length == 0 {(message.len() * 8) as u64} else {total_length};
 
     //Pad message
     padded_message.push(0x80);
@@ -116,9 +114,7 @@ pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4]) -> Vec<u8>
     }
 
     //Append little-endian length
-    padded_message.append(&mut ml_low.to_le_bytes().to_vec());
-    padded_message.append(&mut ml_high.to_le_bytes().to_vec());
-
+    padded_message.append(&mut ml.to_le_bytes().to_vec());
     //Initialize buffers
     let mut a = init_buffer[0];
     let mut b = init_buffer[1];
