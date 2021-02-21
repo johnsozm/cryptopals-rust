@@ -5,6 +5,9 @@
 #[macro_use]
 extern crate lazy_static;
 
+//Alphabetic cipher module for other crypto challenges
+mod alphabetic;
+
 //Utility modules for the challenges to use
 mod aes;
 mod converter;
