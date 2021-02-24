@@ -16,7 +16,99 @@ impl BigNum {
         }
     }
 
-    //TODO: Implement division/modulus operation from http://justinparrtech.com/JustinParr-Tech/an-algorithm-for-arbitrary-precision-integer-division/
+    //Performs single-digit division of n / a
+    fn quick_divide(n: &BigNum, a: &BigNum) -> BigNum {
+        let num_zeros = a.segments.len() - 1;
+
+        let n_segments = n.segments[num_zeros..].to_vec();
+        let a_digit = a.segments[a.segments.len() - 1] as u128;
+
+        let mut quotient_segments = vec![];
+        let mut remainder: u128 = 0;
+
+        for i in (0..n_segments.len()).rev() {
+            remainder <<= 64;
+            remainder += n_segments[i] as u128;
+
+            quotient_segments.push((remainder / a_digit) as u64);
+            remainder %= a_digit;
+        }
+
+        quotient_segments.reverse();
+
+        //Trim leading zeros
+        while quotient_segments.len() > 1 && quotient_segments.last() == Some(&0) {
+            quotient_segments.pop();
+        }
+
+        return BigNum {
+            segments: quotient_segments,
+            neg: n.neg ^ a.neg
+        };
+    }
+
+    ///Returns the quotient and modulus for this / divisor as the tuple (Q,M)
+    pub fn quotient_modulus(&self, divisor: &BigNum) -> (BigNum, BigNum) {
+        //Handle corner cases
+        if divisor.segments == vec![0] {
+            panic!("Attempted to divide by zero!");
+        }
+        if divisor.abs() > self.abs() {
+            return (BigNum::from(0), self.clone());
+        }
+
+        //Ensure we are always doing +/+ division in the main loop to avoid issues
+        if self.neg || divisor.neg {
+            return if self.neg && divisor.neg {
+                self.abs().quotient_modulus(&divisor.abs())
+            } else if self.neg {
+                let (q, r) = (-self).quotient_modulus(divisor);
+                if r == BigNum::from(0) {
+                    (-q, r)
+                }
+                else {
+                    (-q, divisor - &r)
+                }
+            } else {
+                let (q, r) = self.quotient_modulus(&-divisor);
+                if r == BigNum::from(0) {
+                    (-q, r)
+                }
+                else {
+                    (-q, divisor - &r)
+                }
+            }
+        }
+
+        //Construct initial divisor A as MSD of divisor followed by all 0s
+        let mut a_segments = divisor.segments.clone();
+
+        for i in 0..a_segments.len() - 1 {
+            a_segments[i] = 0;
+        }
+
+        let a = BigNum {
+            segments: a_segments,
+            neg: divisor.neg
+        };
+
+        let mut q = BigNum::quick_divide(self, &a);
+        let mut r = divisor + &BigNum::from(1);
+
+        while r.abs() >= divisor.abs() {
+            r = self - &(&q * divisor);
+            let qn = &q + &BigNum::quick_divide(&r, &a);
+            q = BigNum::quick_divide(&(&q + &qn), &BigNum::from(2));
+        }
+
+        r = self - &(&q * divisor);
+        if r.neg {
+            q -= BigNum::from(1);
+            r = &r + divisor;
+        }
+
+        return (q, r);
+    }
 }
 
 impl From<u8> for BigNum {
@@ -138,6 +230,11 @@ impl Neg for BigNum {
     type Output = Self;
 
     fn neg(self) -> Self::Output {
+        //Do not allow -0
+        if self.segments == vec![0] {
+            return self.clone();
+        }
+
         BigNum {
             segments: self.segments.clone(),
             neg: !self.neg
@@ -150,6 +247,11 @@ impl Neg for &BigNum {
     type Output = BigNum;
 
     fn neg(self) -> Self::Output {
+        //Do not allow -0
+        if self.segments == vec![0] {
+            return self.clone();
+        }
+
         BigNum {
             segments: self.segments.clone(),
             neg: !self.neg
@@ -636,5 +738,80 @@ mod tests {
 
         a *= b;
         assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_quick_divide() {
+        let a = BigNum::from(6);
+        let b = BigNum::from(1728);
+        let c = BigNum::from(1730);
+        let d = BigNum::from(288);
+
+        assert_eq!(BigNum::quick_divide(&b, &a), d);
+        assert_eq!(BigNum::quick_divide(&c, &a), d);
+    }
+
+    #[test]
+    fn test_quotient_modulus() {
+        let a = BigNum::from(15);
+        let b = BigNum::from(3);
+        let c = BigNum::from(4);
+        let d = BigNum::from(5);
+        let e = BigNum::from(0);
+
+        assert_eq!(a.quotient_modulus(&b), (d, e));
+        assert_eq!(a.quotient_modulus(&c), (b.clone(), b.clone()));
+    }
+
+    #[test]
+    fn test_quotient_modulus_large() {
+        let a_digits = vec![0x74f4c296e59c8b59, 0x7458e915133c3cfa, 0x25d3af4b2b26d87f];
+        let b_digits = vec![0x2e18da0c6deb37fe, 0xb49b128d375bfb23];
+        let quotient_digits = vec![0x359e28be4be4bc23];
+        let modulus_digits = vec![0x9610c4c1d91d5b9f, 0x3ec4eed4bc736b22];
+
+        let a = BigNum {
+            segments: a_digits,
+            neg: false
+        };
+        let b = BigNum {
+            segments: b_digits,
+            neg: false
+        };
+        let quotient = BigNum {
+            segments: quotient_digits,
+            neg: false
+        };
+        let modulus = BigNum {
+            segments: modulus_digits,
+            neg: false
+        };
+
+        assert_eq!(a.quotient_modulus(&b), (quotient, modulus));
+    }
+
+    #[test]
+    fn test_quotient_modulus_negative() {
+        let a = BigNum::from(-6);
+        let b = BigNum::from(3);
+        let c = BigNum::from(-2);
+        let d = BigNum::from(-7);
+        let e = BigNum::from(0);
+        let f = BigNum::from(2);
+        let g = BigNum::from(1);
+
+        assert_eq!(a.quotient_modulus(&b), (c.clone(), e.clone()));
+        assert_eq!(a.quotient_modulus(&c), (b.clone(), e.clone()));
+        assert_eq!(d.quotient_modulus(&b), (c.clone(), f.clone()));
+        assert_eq!(d.quotient_modulus(&c), (b.clone(), g.clone()))
+    }
+
+    #[test]
+    #[should_panic(expected="Attempted to divide by zero!")]
+    fn test_quotient_modulus_divide_by_zero() {
+        let a = BigNum::from(12973);
+        let b = BigNum::from(0);
+
+        a.quotient_modulus(&b);
     }
 }
