@@ -1,4 +1,4 @@
-use std::ops::{Neg, Add, Sub, AddAssign, SubAssign, Mul, MulAssign};
+use std::ops::{Neg, Add, Sub, AddAssign, SubAssign, Mul, MulAssign, Div, DivAssign, Rem, RemAssign};
 use std::cmp::Ordering;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -459,6 +459,39 @@ impl MulAssign for BigNum {
     }
 }
 
+impl Div for &BigNum {
+    type Output = BigNum;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        self.quotient_modulus(rhs).0
+    }
+}
+
+impl DivAssign for BigNum {
+    fn div_assign(&mut self, rhs: Self) {
+        let result = self.quotient_modulus(&rhs).0;
+        self.segments = result.segments.clone();
+        self.neg = result.neg;
+    }
+}
+
+impl Rem for &BigNum {
+    type Output = BigNum;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        self.quotient_modulus(rhs).1
+    }
+}
+
+impl RemAssign for BigNum {
+    fn rem_assign(&mut self, rhs: Self) {
+        let result = self.quotient_modulus(&rhs).1;
+        self.segments = result.segments.clone();
+        self.neg = result.neg;
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -758,9 +791,11 @@ mod tests {
         let c = BigNum::from(4);
         let d = BigNum::from(5);
         let e = BigNum::from(0);
+        let f = BigNum::from(1);
 
-        assert_eq!(a.quotient_modulus(&b), (d, e));
+        assert_eq!(a.quotient_modulus(&b), (d.clone(), e.clone()));
         assert_eq!(a.quotient_modulus(&c), (b.clone(), b.clone()));
+        assert_eq!(a.quotient_modulus(&f), (a.clone(), e.clone()));
     }
 
     #[test]
@@ -813,5 +848,46 @@ mod tests {
         let b = BigNum::from(0);
 
         a.quotient_modulus(&b);
+    }
+
+    //Light tests for / and % since they are wrappers for the quotient_modulus functionality
+    #[test]
+    fn test_div() {
+        let a = BigNum::from(14);
+        let b = BigNum::from(7);
+        let c = BigNum::from(2);
+
+        assert_eq!(&a / &b, c)
+    }
+
+    #[test]
+    fn test_div_assign() {
+        let mut a = BigNum::from(14);
+        let b = BigNum::from(7);
+        let c = BigNum::from(2);
+
+        a /= b;
+
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_mod() {
+        let a = BigNum::from(14);
+        let b = BigNum::from(5);
+        let c = BigNum::from(4);
+
+        assert_eq!(&a % &b, c)
+    }
+
+    #[test]
+    fn test_mod_assign() {
+        let mut a = BigNum::from(14);
+        let b = BigNum::from(5);
+        let c = BigNum::from(4);
+
+        a %= b;
+
+        assert_eq!(a, c);
     }
 }
