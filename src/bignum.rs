@@ -278,6 +278,43 @@ impl From<isize> for BigNum {
     }
 }
 
+impl From<&Vec<u8>> for BigNum {
+    fn from(bytes: &Vec<u8>) -> Self {
+        let mut padding = 8 - (bytes.len() % 8);
+        if padding == 8 {
+            padding = 0;
+        }
+
+        //Pad to multiple of 8 bytes
+        let mut extended_bytes = bytes.clone();
+        extended_bytes.reverse();
+        for _i in 0..padding {
+            extended_bytes.push(0);
+        }
+
+        let mut segments = vec![];
+
+        for i in 0..extended_bytes.len() / 8 {
+            segments.push(
+                (extended_bytes[8*i] as u64)
+                    + ((extended_bytes[8*i+1] as u64) << 8)
+                    + ((extended_bytes[8*i+2] as u64) << 16)
+                    + ((extended_bytes[8*i+3] as u64) << 24)
+                    + ((extended_bytes[8*i+4] as u64) << 32)
+                    + ((extended_bytes[8*i+5] as u64) << 40)
+                    + ((extended_bytes[8*i+6] as u64) << 48)
+                    + ((extended_bytes[8*i+7] as u64) << 56)
+            );
+        }
+
+        return BigNum {
+            segments,
+            neg: false
+        };
+
+    }
+}
+
 //Neg is implemented for both BigNum and &BigNum to simplify optimization of other operations
 impl Neg for BigNum {
     type Output = Self;
@@ -648,6 +685,23 @@ mod tests {
         assert!(y.neg);
         assert_eq!(x.segments, vec![12974]);
         assert_eq!(y.segments, vec![12974]);
+    }
+
+    #[test]
+    fn test_from_bytes() {
+        let a = BigNum::from(0);
+        let a_bytes = vec![0];
+        let b = BigNum::from(128);
+        let b_bytes = vec![128];
+        let c = BigNum::from(1024);
+        let c_bytes = vec![4, 0];
+        let d = BigNum::from((1 as u128) << 64);
+        let d_bytes = vec![1, 0, 0, 0, 0, 0, 0, 0, 0];
+
+        assert_eq!(BigNum::from(&a_bytes), a);
+        assert_eq!(BigNum::from(&b_bytes), b);
+        assert_eq!(BigNum::from(&c_bytes), c);
+        assert_eq!(BigNum::from(&d_bytes), d);
     }
 
     #[test]
