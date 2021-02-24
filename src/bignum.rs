@@ -1,4 +1,4 @@
-use std::ops::{Neg, Add, Sub, AddAssign, SubAssign};
+use std::ops::{Neg, Add, Sub, AddAssign, SubAssign, Mul, MulAssign};
 use std::cmp::Ordering;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
@@ -130,6 +130,7 @@ impl From<isize> for BigNum {
     }
 }
 
+//Neg is implemented for both BigNum and &BigNum to simplify optimization of other operations
 impl Neg for BigNum {
     type Output = Self;
 
@@ -141,6 +142,7 @@ impl Neg for BigNum {
     }
 }
 
+//Neg is implemented for both BigNum and &BigNum to simplify optimization of other operations
 impl Neg for &BigNum {
     type Output = BigNum;
 
@@ -154,6 +156,7 @@ impl Neg for &BigNum {
 
 impl PartialOrd for BigNum {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        //Fastest comparison is to check for mismatched signs
         if self.neg ^ other.neg {
             return if self.neg {
                 Some(Ordering::Less)
@@ -162,6 +165,7 @@ impl PartialOrd for BigNum {
             }
         }
 
+        //Next, check for mismatched number lengths to see if any direct comparison is needed
         if self.segments.len() > other.segments.len() {
             return if self.neg {
                 Some(Ordering::Less)
@@ -180,6 +184,7 @@ impl PartialOrd for BigNum {
             }
         }
 
+        //Only do the actual comparison if we have to
         for i in (0..self.segments.len()).rev() {
             if self.segments[i] != other.segments[i] {
                 return if (self.neg && self.segments[i] > other.segments[i])
@@ -212,6 +217,7 @@ impl Add for &BigNum {
         let mut carry: u128 = 0;
         let mut new_segments = vec![];
 
+        //Simple walk through numbers, adding like places and maintaining a carry value
         for i in 0..usize::max(self.segments.len(), rhs.segments.len()) {
             let a: u128 = if i < self.segments.len() {self.segments[i] as u128} else {0};
             let b: u128 = if i < rhs.segments.len() {rhs.segments[i] as u128} else {0};
@@ -257,6 +263,7 @@ impl Sub for &BigNum {
         let mut new_segments = vec![];
         let mut carry: i128 = 0;
 
+        //Walk through numbers, subtracting like places and borrowing as needed
         for i in 0..usize::max(self.segments.len(), rhs.segments.len()) {
             let a: i128 = if i < self.segments.len() {self.segments[i] as i128} else {0};
             let b: i128 = if i < rhs.segments.len() {rhs.segments[i] as i128} else {0};
@@ -272,7 +279,7 @@ impl Sub for &BigNum {
             new_segments.push(tmp as u64);
         }
 
-        while new_segments.last() == Some(&0) {
+        while new_segments.len() > 1 && new_segments.last() == Some(&0) {
             new_segments.pop();
         }
 
@@ -286,6 +293,56 @@ impl Sub for &BigNum {
 impl SubAssign for BigNum {
     fn sub_assign(&mut self, rhs: Self) {
         let result = &*self - &rhs;
+        self.segments = result.segments.clone();
+        self.neg = result.neg;
+    }
+}
+
+impl Mul for &BigNum {
+    type Output = BigNum;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let mut partials = vec![];
+
+        //For each digit[i] in self, construct the partial sum digit[i] * rhs << i
+        for i in 0..self.segments.len() {
+            let mut new_segments = vec![0;i];
+            let mut carry: u128 = 0;
+
+            for j in 0..rhs.segments.len() {
+                carry = carry + ((self.segments[i] as u128) * (rhs.segments[j] as u128));
+                new_segments.push(carry as u64);
+                carry >>= 64;
+            }
+
+            if carry > 0 {
+                new_segments.push(carry as u64);
+            }
+
+            //Handle any trailing zero values from zero multiplications
+            while new_segments.len() > 1 && new_segments.last() == Some(&0) {
+                new_segments.pop();
+            }
+
+            partials.push(BigNum{
+                segments: new_segments,
+                neg: self.neg ^ rhs.neg
+            });
+        }
+
+        //Add up all partial sums to get a result
+        let mut sum = BigNum::from(0);
+        for p in partials {
+            sum += p;
+        }
+
+        return sum;
+    }
+}
+
+impl MulAssign for BigNum {
+    fn mul_assign(&mut self, rhs: Self) {
+        let result = &*self * &rhs;
         self.segments = result.segments.clone();
         self.neg = result.neg;
     }
@@ -494,8 +551,10 @@ mod tests {
         let a = BigNum::from((1 as u128) << 64);
         let b = BigNum::from(1);
         let c = BigNum::from(u64::MAX);
+        let d = BigNum::from(0);
 
         assert_eq!(&a - &b, c);
+        assert_eq!(&a - &a, d);
     }
 
     #[test]
@@ -520,6 +579,48 @@ mod tests {
         let c = BigNum::from(-3);
 
         a -= b;
+        assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_mul() {
+        let a = BigNum::from(2);
+        let b = BigNum::from(3);
+        let c = BigNum::from(6);
+
+        assert_eq!(&a * &b, c);
+    }
+
+    #[test]
+    fn test_mul_rounding() {
+        let a = BigNum::from(u64::MAX);
+        let b = BigNum::from(4);
+        let c = BigNum::from((u64::MAX as u128) << 2);
+        let d = BigNum::from(0);
+
+        assert_eq!(&a * &b, c);
+        assert_eq!(&c * &d, d);
+    }
+
+    #[test]
+    fn test_mul_negative() {
+        let a = BigNum::from(3);
+        let b = BigNum::from(-4);
+        let c = BigNum::from(-3);
+        let d = BigNum::from(12);
+        let e = BigNum::from(-12);
+
+        assert_eq!(&a * &b, e);
+        assert_eq!(&b * &c, d);
+    }
+
+    #[test]
+    fn test_mul_assign() {
+        let mut a = BigNum::from(3);
+        let b = BigNum::from(6);
+        let c = BigNum::from(18);
+
+        a *= b;
         assert_eq!(a, c);
     }
 }
