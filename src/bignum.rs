@@ -8,12 +8,15 @@ pub struct BigNum {
 }
 
 impl BigNum {
-    fn abs(&self) -> BigNum {
+    ///Returns the absolute value of the number
+    pub fn abs(&self) -> BigNum {
         BigNum {
             segments: self.segments.clone(),
             neg: false
         }
     }
+
+    //TODO: Implement division/modulus operation from http://justinparrtech.com/JustinParr-Tech/an-algorithm-for-arbitrary-precision-integer-division/
 }
 
 impl From<u8> for BigNum {
@@ -283,9 +286,12 @@ impl Sub for &BigNum {
             new_segments.pop();
         }
 
+        //Avoid -0
+        let new_sign = if new_segments == vec![0] {false} else {self.neg};
+
         return BigNum {
             segments: new_segments,
-            neg: self.neg
+            neg: new_sign
         };
     }
 }
@@ -324,9 +330,12 @@ impl Mul for &BigNum {
                 new_segments.pop();
             }
 
+            //Avoid -0
+            let new_sign = if new_segments == vec![0] {false} else {self.neg ^ rhs.neg};
+
             partials.push(BigNum{
                 segments: new_segments,
-                neg: self.neg ^ rhs.neg
+                neg: new_sign
             });
         }
 
@@ -565,11 +574,14 @@ mod tests {
         let d = BigNum::from(-16);
         let e = BigNum::from(-8);
         let f = BigNum::from(12);
+        let g = BigNum::from(0);
 
         assert_eq!(&a - &b, d);
         assert_eq!(&a - &c, e);
         assert_eq!(&b - &e, f);
         assert_eq!(&b - &f, e);
+        assert_eq!(&b - &b, g);
+        assert_eq!(&c - &c, g);
     }
 
     #[test]
@@ -609,9 +621,11 @@ mod tests {
         let c = BigNum::from(-3);
         let d = BigNum::from(12);
         let e = BigNum::from(-12);
+        let f = BigNum::from(0);
 
         assert_eq!(&a * &b, e);
         assert_eq!(&b * &c, d);
+        assert_eq!(&e * &f, f);
     }
 
     #[test]
