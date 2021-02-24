@@ -3,8 +3,8 @@ use std::cmp::Ordering;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct BigNum {
-    segments: Vec<u64>,
-    neg: bool
+    pub segments: Vec<u64>,
+    pub neg: bool
 }
 
 impl BigNum {
@@ -95,7 +95,7 @@ impl BigNum {
         let mut q = BigNum::quick_divide(self, &a);
         let mut r = divisor + &BigNum::from(1);
 
-        while r.abs() >= divisor.abs() {
+        while r.abs() >= *divisor {
             r = self - &(&q * divisor);
             let qn = &q + &BigNum::quick_divide(&r, &a);
             q = BigNum::quick_divide(&(&q + &qn), &BigNum::from(2));
@@ -108,6 +108,35 @@ impl BigNum {
         }
 
         return (q, r);
+    }
+
+    pub fn modular_exponent(&self, exponent: &BigNum, modulus: &BigNum) -> BigNum {
+        let mut working_exponent = exponent.segments.clone();
+        let mut result = BigNum::from(1);
+        let mut pow = self % modulus;
+
+        //TODO: Overflowing stack on both modulus operations here - why?
+        while !working_exponent.is_empty() {
+            if working_exponent[0] % 2 == 1 {
+                result = &(&result * &pow) % modulus;
+            }
+            pow = &(&pow * &pow) % modulus;
+
+            //Bit-shift exponent
+            for i in 0..working_exponent.len() - 1 {
+                working_exponent[i] = (working_exponent[i] >> 1) + ((working_exponent[i + 1] % 2) << 63);
+            }
+
+            let last_index = working_exponent.len() - 1;
+            working_exponent[last_index] >>= 1;
+
+
+            if working_exponent.last() == Some(&0) {
+                working_exponent.pop();
+            }
+        }
+
+        return result;
     }
 }
 
@@ -490,7 +519,6 @@ impl RemAssign for BigNum {
         self.neg = result.neg;
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -889,5 +917,42 @@ mod tests {
         a %= b;
 
         assert_eq!(a, c);
+    }
+
+    #[test]
+    fn test_modular_exponent() {
+        let base = BigNum::from(52);
+        let exponent = BigNum::from(5);
+        let modulus = BigNum::from(127);
+        let result = BigNum::from(68);
+
+        assert_eq!(base.modular_exponent(&exponent, &modulus), result);
+    }
+
+    #[test]
+    fn test_modular_exponent_large() {
+        let base_segments = vec![0x5a6ea1f737a2b1de, 0x9edbd17552968cff, 0x00875ae9b95650ac, 0x62b9449a0cff2ee2];
+        let exponent_segments = vec![0xe0888094ba3b3730, 0x53c5917d68a7925c];
+        let modulus_segments = vec![0x7debf1970ef123e7, 0x3bba353cbd68edaa];
+        let result_segments = vec![0x45a55651a2d22f0, 0xcaf8720d107cd03e];
+
+        let base = BigNum {
+            segments: base_segments,
+            neg: false
+        };
+        let exponent = BigNum {
+            segments: exponent_segments,
+            neg: false
+        };
+        let modulus = BigNum {
+            segments: modulus_segments,
+            neg: false
+        };
+        let result = BigNum {
+            segments: result_segments,
+            neg: false
+        };
+
+        assert_eq!(base.modular_exponent(&exponent, &modulus), result);
     }
 }
