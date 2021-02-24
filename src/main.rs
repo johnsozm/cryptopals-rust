@@ -1,9 +1,20 @@
 //Most code is "dead" since it is only referenced by tests
 #![allow(dead_code)]
 
+//Required feature for Rocket
+#![feature(decl_macro)]
+
 //Allow for initializing random static variables
-#[macro_use]
-extern crate lazy_static;
+#[macro_use] extern crate lazy_static;
+
+//Use Rocket & http crates for challenges that involve requests to an HTTP server.
+#[macro_use] extern crate rocket;
+
+use crate::converter::bytes_to_hex;
+use std::fs::File;
+use std::io::Read;
+use crate::mac::create_hmac;
+use crate::hash::Hash;
 
 //Alphabetic cipher module for other crypto challenges
 mod alphabetic;
@@ -48,8 +59,25 @@ mod challenge27;
 //Challenge 28 was implementing secret-prefix MAC - no additional code needed
 mod challenge29;
 mod challenge30;
+mod challenge31;
+//Challenge 32 code is in challenge31 module (just made the tweaks in-place)
+//Commented-out code in main routine should be used to run the timing channel attack
+//since it takes so long the test suite gives up. (Approx runtime on my machine: 5hr)
 
 fn main() {
+    /*let file = File::open("challenge10.txt");
+    let mut contents: Vec<u8> = vec![];
+
+    match file {
+        Ok(mut f) => {
+            f.read_to_end(&mut contents).unwrap();
+        },
+        Err(_) => ()
+    };
+
+    let mac = create_hmac(&contents, &challenge31::KEY, Hash::MD4);
+    println!("Expected: {}", bytes_to_hex(&mac.signature));
+    println!("Timing attack yielded: {}", bytes_to_hex(&challenge31::challenge31()));*/
 }
 
 

@@ -19,6 +19,13 @@ impl Hash {
             Hash::MD4 => 64
         }
     }
+
+    pub fn hash_length(&self) -> usize {
+        return match self {
+            Hash::SHA1 => 20,
+            Hash::MD4 => 16
+        }
+    }
 }
 
 ///Generates the SHA-1 digest of a message
