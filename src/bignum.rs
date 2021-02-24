@@ -138,6 +138,30 @@ impl BigNum {
 
         return result;
     }
+
+    ///Returns a big-endian byte vector that encodes the absolute value of this number (no support for signed yet)
+    pub fn to_unsigned_bytes(&self) -> Vec<u8> {
+        let mut bytes = vec![];
+
+        for i in (0..self.segments.len()).rev() {
+            bytes.append(&mut self.segments[i].to_be_bytes().to_vec());
+        }
+
+        let mut leading_zeros = 0;
+        for i in 0..8 {
+            if bytes[i] != 0 {
+                break;
+            }
+            leading_zeros += 1;
+        }
+        bytes = bytes[leading_zeros..].to_vec();
+
+        if bytes.is_empty() {
+            bytes.push(0);
+        }
+
+        return bytes;
+    }
 }
 
 impl From<u8> for BigNum {
@@ -624,6 +648,19 @@ mod tests {
         assert!(y.neg);
         assert_eq!(x.segments, vec![12974]);
         assert_eq!(y.segments, vec![12974]);
+    }
+
+    #[test]
+    fn test_to_unsigned_bytes() {
+        let a = BigNum::from(0);
+        let b = BigNum::from(12);
+        let c = BigNum::from(1024);
+        let d = BigNum::from((1 as u128) << 64);
+
+        assert_eq!(a.to_unsigned_bytes(), vec![0]);
+        assert_eq!(b.to_unsigned_bytes(), vec![12]);
+        assert_eq!(c.to_unsigned_bytes(), vec![4, 0]);
+        assert_eq!(d.to_unsigned_bytes(), vec![1, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
 
     #[test]
