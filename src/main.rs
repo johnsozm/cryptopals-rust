@@ -10,17 +10,21 @@
 //Use Rocket & http crates for challenges that involve requests to an HTTP server.
 #[macro_use] extern crate rocket;
 
+/* Dependencies for timing attack code
 use crate::converter::bytes_to_hex;
 use std::fs::File;
 use std::io::Read;
 use crate::mac::create_hmac;
 use crate::hash::Hash;
+*/
+
 
 //Alphabetic cipher module for other crypto challenges
 mod alphabetic;
 
 //Utility modules for the challenges to use
 mod aes;
+mod bignum;
 mod converter;
 mod hash;
 mod mac;
@@ -62,7 +66,7 @@ mod challenge30;
 mod challenge31;
 //Challenge 32 code is in challenge31 module (just made the tweaks in-place)
 //Commented-out code in main routine should be used to run the timing channel attack
-//since it takes so long the test suite gives up. (Approx runtime on my machine: 5hr)
+//since it takes so long the test suite gives up. (Approx runtime on my machine: 4hr)
 
 fn main() {
     /*let file = File::open("challenge10.txt");
