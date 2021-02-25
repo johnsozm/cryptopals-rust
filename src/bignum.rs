@@ -115,7 +115,6 @@ impl BigNum {
         let mut result = BigNum::from(1);
         let mut pow = self % modulus;
 
-        //TODO: Overflowing stack on both modulus operations here - why?
         while !working_exponent.is_empty() {
             if working_exponent[0] % 2 == 1 {
                 result = &(&result * &pow) % modulus;
@@ -129,7 +128,6 @@ impl BigNum {
 
             let last_index = working_exponent.len() - 1;
             working_exponent[last_index] >>= 1;
-
 
             if working_exponent.last() == Some(&0) {
                 working_exponent.pop();
@@ -400,6 +398,11 @@ impl Add for &BigNum {
     type Output = BigNum;
 
     fn add(self, rhs: Self) -> Self::Output {
+        //Handle sign issues when subtracting 0
+        if rhs.segments == vec![0] {
+            return self.clone();
+        }
+
         //Handle different signs by passing to subtraction routine
         if self.neg ^ rhs.neg {
             return if self.neg {
@@ -445,6 +448,11 @@ impl Sub for &BigNum {
     type Output = BigNum;
 
     fn sub(self, rhs: Self) -> Self::Output {
+        //Handle sign issues when subtracting 0
+        if rhs.segments == vec![0] {
+            return self.clone();
+        }
+
         //Handle different signs by passing to addition routine
         if self.neg ^ rhs.neg {
             return self + &(-rhs)
@@ -919,27 +927,10 @@ mod tests {
 
     #[test]
     fn test_quotient_modulus_large() {
-        let a_digits = vec![0x74f4c296e59c8b59, 0x7458e915133c3cfa, 0x25d3af4b2b26d87f];
-        let b_digits = vec![0x2e18da0c6deb37fe, 0xb49b128d375bfb23];
-        let quotient_digits = vec![0x359e28be4be4bc23];
-        let modulus_digits = vec![0x9610c4c1d91d5b9f, 0x3ec4eed4bc736b22];
-
-        let a = BigNum {
-            segments: a_digits,
-            neg: false
-        };
-        let b = BigNum {
-            segments: b_digits,
-            neg: false
-        };
-        let quotient = BigNum {
-            segments: quotient_digits,
-            neg: false
-        };
-        let modulus = BigNum {
-            segments: modulus_digits,
-            neg: false
-        };
+        let a = BigNum::from(&vec![0xc5, 0xe1, 0x40, 0x80, 0x8b, 0xe9, 0xe1, 0x44, 0xbc, 0x8b, 0x96, 0x07, 0xe1, 0x78, 0xea, 0xb1, 0x25, 0xaf, 0x46, 0x87, 0x52, 0x01, 0x37, 0xc0]);
+        let b = BigNum::from(&vec![0x80, 0xf9, 0x39, 0xff, 0x74, 0x86, 0x8f, 0x0a, 0xcb, 0xf4, 0x09, 0x05, 0x5f, 0x1d, 0x4d, 0x7d]);
+        let quotient = BigNum::from(&vec![0x01, 0x88, 0xc5, 0xbe, 0x5c, 0xd8, 0xef, 0x11, 0x71]);
+        let modulus = BigNum::from(&vec![0x37, 0xbd, 0xa7, 0x5c, 0x46, 0x3d, 0x74, 0x36, 0xfe, 0xdd, 0xcb, 0x2e, 0x94, 0x39, 0xb6, 0x93]);
 
         assert_eq!(a.quotient_modulus(&b), (quotient, modulus));
     }
@@ -1022,27 +1013,10 @@ mod tests {
 
     #[test]
     fn test_modular_exponent_large() {
-        let base_segments = vec![0x5a6ea1f737a2b1de, 0x9edbd17552968cff, 0x00875ae9b95650ac, 0x62b9449a0cff2ee2];
-        let exponent_segments = vec![0xe0888094ba3b3730, 0x53c5917d68a7925c];
-        let modulus_segments = vec![0x7debf1970ef123e7, 0x3bba353cbd68edaa];
-        let result_segments = vec![0x45a55651a2d22f0, 0xcaf8720d107cd03e];
-
-        let base = BigNum {
-            segments: base_segments,
-            neg: false
-        };
-        let exponent = BigNum {
-            segments: exponent_segments,
-            neg: false
-        };
-        let modulus = BigNum {
-            segments: modulus_segments,
-            neg: false
-        };
-        let result = BigNum {
-            segments: result_segments,
-            neg: false
-        };
+        let base = BigNum::from(&vec![0xbc, 0x8d, 0x32, 0xf4, 0xa8, 0x5b, 0xb6, 0x7c, 0x88, 0xaa, 0x97, 0xdb, 0x62, 0x1c, 0xed, 0xcb, 0xed, 0x25, 0xa8, 0xaf, 0xd1, 0xb2, 0x4d, 0xc9, 0x12, 0xcb, 0xcd, 0x7a, 0x4f, 0x14, 0xce, 0x8c]);
+        let exponent = BigNum::from(&vec![0x72, 0x59, 0xf6, 0xf9, 0xdf, 0xfe, 0xb0, 0x42, 0x90, 0x0e, 0xd1, 0x30, 0x1a, 0x32, 0x34, 0xcb]);
+        let modulus = BigNum::from(&vec![0x7c, 0x3c, 0x0c, 0x75, 0x2a, 0x52, 0xfb, 0xf9, 0x56, 0x1f, 0xd8, 0xe1, 0xa7, 0xdd, 0x63, 0x56]);
+        let result = BigNum::from(&vec![0x6d, 0x85, 0xef, 0xcb, 0xea, 0x56, 0x0f, 0x62, 0x30, 0xe9, 0x04, 0x5d, 0x82, 0x00, 0x5b, 0xb6]);
 
         assert_eq!(base.modular_exponent(&exponent, &modulus), result);
     }
