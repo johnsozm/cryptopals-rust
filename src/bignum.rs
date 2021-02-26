@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct BigNum {
-    pub segments: Vec<u64>,
+    pub segments: Vec<u8>,
     pub neg: bool
 }
 
@@ -21,16 +21,16 @@ impl BigNum {
         let num_zeros = a.segments.len() - 1;
 
         let n_segments = n.segments[num_zeros..].to_vec();
-        let a_digit = a.segments[a.segments.len() - 1] as u128;
+        let a_digit = a.segments[a.segments.len() - 1] as u16;
 
         let mut quotient_segments = vec![];
-        let mut remainder: u128 = 0;
+        let mut remainder: u16 = 0;
 
         for i in (0..n_segments.len()).rev() {
-            remainder <<= 64;
-            remainder += n_segments[i] as u128;
+            remainder <<= 8;
+            remainder += n_segments[i] as u16;
 
-            quotient_segments.push((remainder / a_digit) as u64);
+            quotient_segments.push((remainder / a_digit) as u8);
             remainder %= a_digit;
         }
 
@@ -116,6 +116,7 @@ impl BigNum {
         let mut pow = self % modulus;
 
         while !working_exponent.is_empty() {
+            println!("{}", working_exponent.len());
             if working_exponent[0] % 2 == 1 {
                 result = &(&result * &pow) % modulus;
             }
@@ -123,7 +124,7 @@ impl BigNum {
 
             //Bit-shift exponent
             for i in 0..working_exponent.len() - 1 {
-                working_exponent[i] = (working_exponent[i] >> 1) + ((working_exponent[i + 1] % 2) << 63);
+                working_exponent[i] = (working_exponent[i] >> 1) + ((working_exponent[i + 1] % 2) << 7);
             }
 
             let last_index = working_exponent.len() - 1;
@@ -139,24 +140,9 @@ impl BigNum {
 
     ///Returns a big-endian byte vector that encodes the absolute value of this number (no support for signed yet)
     pub fn to_unsigned_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![];
+        let mut bytes = self.segments.clone();
 
-        for i in (0..self.segments.len()).rev() {
-            bytes.append(&mut self.segments[i].to_be_bytes().to_vec());
-        }
-
-        let mut leading_zeros = 0;
-        for i in 0..8 {
-            if bytes[i] != 0 {
-                break;
-            }
-            leading_zeros += 1;
-        }
-        bytes = bytes[leading_zeros..].to_vec();
-
-        if bytes.is_empty() {
-            bytes.push(0);
-        }
+        bytes.reverse();
 
         return bytes;
     }
@@ -164,7 +150,7 @@ impl BigNum {
     ///Returns the bit length of the number
     pub fn len_bits(&self) -> usize {
         let last_index = self.segments.len() - 1;
-        let mut bits = last_index * 64;
+        let mut bits = last_index * 8;
         let mut high_digit = self.segments[last_index];
 
         while high_digit > 0 {
@@ -177,48 +163,15 @@ impl BigNum {
 
     ///Returns the byte length of the number
     pub fn len_bytes(&self) -> usize {
-        let last_index = self.segments.len() - 1;
-        let mut bytes = last_index * 8;
-        let mut high_digit = self.segments[last_index];
-
-        while high_digit > 0 {
-            bytes += 1;
-            high_digit >>= 8;
+        if self.segments == vec![0] {
+            return 0;
         }
-
-        return bytes;
+        return self.segments.len();
     }
 }
 
 impl From<u8> for BigNum {
     fn from(u: u8) -> BigNum {
-        BigNum {
-            segments: vec![u as u64],
-            neg: false
-        }
-    }
-}
-
-impl From<u16> for BigNum {
-    fn from(u: u16) -> BigNum {
-        BigNum {
-            segments: vec![u as u64],
-            neg: false
-        }
-    }
-}
-
-impl From<u32> for BigNum {
-    fn from(u: u32) -> BigNum {
-        BigNum {
-            segments: vec![u as u64],
-            neg: false
-        }
-    }
-}
-
-impl From<u64> for BigNum {
-    fn from(u: u64) -> BigNum {
         BigNum {
             segments: vec![u],
             neg: false
@@ -226,118 +179,97 @@ impl From<u64> for BigNum {
     }
 }
 
+impl From<u16> for BigNum {
+    fn from(u: u16) -> BigNum {
+        return BigNum::from(&u.to_be_bytes().to_vec());
+    }
+}
+
+impl From<u32> for BigNum {
+    fn from(u: u32) -> BigNum {
+        return BigNum::from(&u.to_be_bytes().to_vec());
+    }
+}
+
+impl From<u64> for BigNum {
+    fn from(u: u64) -> BigNum {
+        return BigNum::from(&u.to_be_bytes().to_vec());
+    }
+}
+
 impl From<u128> for BigNum {
     fn from(u: u128) -> BigNum {
-        BigNum {
-            segments: vec![u as u64, (u >> 64) as u64],
-            neg: false
-        }
+        return BigNum::from(&u.to_be_bytes().to_vec());
     }
 }
 
 impl From<usize> for BigNum {
     fn from(u: usize) -> BigNum {
-        BigNum {
-            segments: vec![u as u64],
-            neg: false
-        }
+        return BigNum::from(&u.to_be_bytes().to_vec());
     }
 }
 
 impl From<i8> for BigNum {
     fn from(i: i8) -> BigNum {
         let abs = if i < 0 {-i} else {i};
-        BigNum {
-            segments: vec![abs as u64],
-            neg: i < 0
-        }
+        let ret = BigNum::from(&abs.to_be_bytes().to_vec());
+        return if i < 0 {-ret} else {ret};
     }
 }
 
 impl From<i16> for BigNum {
     fn from(i: i16) -> BigNum {
         let abs = if i < 0 {-i} else {i};
-        BigNum {
-            segments: vec![abs as u64],
-            neg: i < 0
-        }
+        let ret = BigNum::from(&abs.to_be_bytes().to_vec());
+        return if i < 0 {-ret} else {ret};
     }
 }
 
 impl From<i32> for BigNum {
     fn from(i: i32) -> BigNum {
         let abs = if i < 0 {-i} else {i};
-        BigNum {
-            segments: vec![abs as u64],
-            neg: i < 0
-        }
+        let ret = BigNum::from(&abs.to_be_bytes().to_vec());
+        return if i < 0 {-ret} else {ret};
     }
 }
 
 impl From<i64> for BigNum {
     fn from(i: i64) -> BigNum {
         let abs = if i < 0 {-i} else {i};
-        BigNum {
-            segments: vec![abs as u64],
-            neg: i < 0
-        }
+        let ret = BigNum::from(&abs.to_be_bytes().to_vec());
+        return if i < 0 {-ret} else {ret};
     }
 }
 
 impl From<i128> for BigNum {
     fn from(i: i128) -> BigNum {
         let abs = if i < 0 {-i} else {i};
-        BigNum {
-            segments: vec![abs as u64, (abs >> 64) as u64],
-            neg: i < 0
-        }
+        let ret = BigNum::from(&abs.to_be_bytes().to_vec());
+        return if i < 0 {-ret} else {ret};
     }
 }
 
 impl From<isize> for BigNum {
     fn from(i: isize) -> BigNum {
         let abs = if i < 0 {-i} else {i};
-        BigNum {
-            segments: vec![abs as u64],
-            neg: i < 0
-        }
+        let ret = BigNum::from(&abs.to_be_bytes().to_vec());
+        return if i < 0 {-ret} else {ret};
     }
 }
 
 impl From<&Vec<u8>> for BigNum {
     fn from(bytes: &Vec<u8>) -> Self {
-        let mut padding = 8 - (bytes.len() % 8);
-        if padding == 8 {
-            padding = 0;
-        }
+        let mut segments = bytes.clone();
+        segments.reverse();
 
-        //Pad to multiple of 8 bytes
-        let mut extended_bytes = bytes.clone();
-        extended_bytes.reverse();
-        for _i in 0..padding {
-            extended_bytes.push(0);
-        }
-
-        let mut segments = vec![];
-
-        for i in 0..extended_bytes.len() / 8 {
-            segments.push(
-                (extended_bytes[8*i] as u64)
-                    + ((extended_bytes[8*i+1] as u64) << 8)
-                    + ((extended_bytes[8*i+2] as u64) << 16)
-                    + ((extended_bytes[8*i+3] as u64) << 24)
-                    + ((extended_bytes[8*i+4] as u64) << 32)
-                    + ((extended_bytes[8*i+5] as u64) << 40)
-                    + ((extended_bytes[8*i+6] as u64) << 48)
-                    + ((extended_bytes[8*i+7] as u64) << 56)
-            );
+        while segments.len() > 1 && segments.last() == Some(&0) {
+            segments.pop();
         }
 
         return BigNum {
             segments,
             neg: false
         };
-
     }
 }
 
@@ -440,21 +372,21 @@ impl Add for &BigNum {
             }
         }
 
-        let mut carry: u128 = 0;
+        let mut carry: u16 = 0;
         let mut new_segments = vec![];
 
         //Simple walk through numbers, adding like places and maintaining a carry value
         for i in 0..usize::max(self.segments.len(), rhs.segments.len()) {
-            let a: u128 = if i < self.segments.len() {self.segments[i] as u128} else {0};
-            let b: u128 = if i < rhs.segments.len() {rhs.segments[i] as u128} else {0};
+            let a: u16 = if i < self.segments.len() {self.segments[i] as u16} else {0};
+            let b: u16 = if i < rhs.segments.len() {rhs.segments[i] as u16} else {0};
 
             carry = a + b + carry;
-            new_segments.push(carry as u64);
-            carry >>= 64;
+            new_segments.push(carry as u8);
+            carry >>= 8;
         }
 
         if carry > 0 {
-            new_segments.push(carry as u64);
+            new_segments.push(carry as u8);
         }
 
         return BigNum {
@@ -492,22 +424,22 @@ impl Sub for &BigNum {
         }
 
         let mut new_segments = vec![];
-        let mut carry: i128 = 0;
+        let mut carry: i16 = 0;
 
         //Walk through numbers, subtracting like places and borrowing as needed
         for i in 0..usize::max(self.segments.len(), rhs.segments.len()) {
-            let a: i128 = if i < self.segments.len() {self.segments[i] as i128} else {0};
-            let b: i128 = if i < rhs.segments.len() {rhs.segments[i] as i128} else {0};
+            let a: i16 = if i < self.segments.len() {self.segments[i] as i16} else {0};
+            let b: i16 = if i < rhs.segments.len() {rhs.segments[i] as i16} else {0};
 
             let mut tmp = carry + a - b;
             carry = 0;
 
             if tmp < 0 {
-                tmp += u64::MAX as i128 + 1;
+                tmp += 256;
                 carry -= 1;
             }
 
-            new_segments.push(tmp as u64);
+            new_segments.push(tmp as u8);
         }
 
         while new_segments.len() > 1 && new_segments.last() == Some(&0) {
@@ -541,16 +473,16 @@ impl Mul for &BigNum {
         //For each digit[i] in self, construct the partial sum digit[i] * rhs << i
         for i in 0..self.segments.len() {
             let mut new_segments = vec![0;i];
-            let mut carry: u128 = 0;
+            let mut carry: u16 = 0;
 
             for j in 0..rhs.segments.len() {
-                carry = carry + ((self.segments[i] as u128) * (rhs.segments[j] as u128));
-                new_segments.push(carry as u64);
-                carry >>= 64;
+                carry = carry + ((self.segments[i] as u16) * (rhs.segments[j] as u16));
+                new_segments.push(carry as u8);
+                carry >>= 8;
             }
 
             if carry > 0 {
-                new_segments.push(carry as u64);
+                new_segments.push(carry as u8);
             }
 
             //Handle any trailing zero values from zero multiplications
@@ -632,35 +564,35 @@ mod tests {
     fn test_from_u16() {
         let x = BigNum::from(512 as u16);
         assert!(!x.neg);
-        assert_eq!(x.segments, vec![512]);
+        assert_eq!(x.segments, vec![0, 2]);
     }
 
     #[test]
     fn test_from_u32() {
         let x = BigNum::from(128000 as u32);
         assert!(!x.neg);
-        assert_eq!(x.segments, vec![128000]);
+        assert_eq!(x.segments, vec![0x00, 0xf4, 0x01]);
     }
 
     #[test]
     fn test_from_u64() {
         let x = BigNum::from(8000000000 as u64);
         assert!(!x.neg);
-        assert_eq!(x.segments, vec![8000000000]);
+        assert_eq!(x.segments, vec![0x00, 0x50, 0xd6, 0xdc, 0x01]);
     }
 
     #[test]
     fn test_from_u128() {
         let x = BigNum::from((1 as u128) << 64);
         assert!(!x.neg);
-        assert_eq!(x.segments, vec![0,1]);
+        assert_eq!(x.segments, vec![0, 0, 0, 0, 0, 0, 0, 0, 1]);
     }
 
     #[test]
     fn test_from_usize() {
         let x = BigNum::from(19274 as usize);
         assert!(!x.neg);
-        assert_eq!(x.segments, vec![19274]);
+        assert_eq!(x.segments, vec![0x4a, 0x4b]);
     }
 
     #[test]
@@ -679,8 +611,8 @@ mod tests {
         let y = BigNum::from(-512 as i16);
         assert!(!x.neg);
         assert!(y.neg);
-        assert_eq!(x.segments, vec![512]);
-        assert_eq!(y.segments, vec![512]);
+        assert_eq!(x.segments, vec![0, 2]);
+        assert_eq!(y.segments, vec![0, 2]);
     }
 
     #[test]
@@ -689,8 +621,8 @@ mod tests {
         let y = BigNum::from(-128000 as i32);
         assert!(!x.neg);
         assert!(y.neg);
-        assert_eq!(x.segments, vec![128000]);
-        assert_eq!(y.segments, vec![128000]);
+        assert_eq!(x.segments, vec![0x00, 0xf4, 0x01]);
+        assert_eq!(y.segments, vec![0x00, 0xf4, 0x01]);
     }
 
     #[test]
@@ -699,8 +631,8 @@ mod tests {
         let y = BigNum::from(-8000000000 as i64);
         assert!(!x.neg);
         assert!(y.neg);
-        assert_eq!(x.segments, vec![8000000000]);
-        assert_eq!(y.segments, vec![8000000000]);
+        assert_eq!(x.segments, vec![0x00, 0x50, 0xd6, 0xdc, 0x01]);
+        assert_eq!(y.segments, vec![0x00, 0x50, 0xd6, 0xdc, 0x01]);
     }
 
     #[test]
@@ -709,8 +641,8 @@ mod tests {
         let y = BigNum::from((-1 as i128) << 64);
         assert!(!x.neg);
         assert!(y.neg);
-        assert_eq!(x.segments, vec![0,1]);
-        assert_eq!(y.segments, vec![0,1]);
+        assert_eq!(x.segments, vec![0, 0, 0, 0, 0, 0, 0, 0, 1]);
+        assert_eq!(y.segments, vec![0, 0, 0, 0, 0, 0, 0, 0, 1]);
     }
 
     #[test]
@@ -719,8 +651,8 @@ mod tests {
         let y = BigNum::from(-12974 as isize);
         assert!(!x.neg);
         assert!(y.neg);
-        assert_eq!(x.segments, vec![12974]);
-        assert_eq!(y.segments, vec![12974]);
+        assert_eq!(x.segments, vec![0xae, 0x32]);
+        assert_eq!(y.segments, vec![0xae, 0x32]);
     }
 
     #[test]

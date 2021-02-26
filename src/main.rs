@@ -26,6 +26,7 @@ mod alphabetic;
 mod aes;
 mod bignum;
 mod converter;
+mod diffie_hellman;
 mod hash;
 mod mac;
 mod mt19937;
@@ -68,6 +69,7 @@ mod challenge31;
 //Commented-out code in main routine should be used to run the timing channel attack
 //since it takes so long the test suite gives up. (Approx runtime on my machine: 4hr)
 
+use diffie_hellman::*;
 fn main() {
     /*let file = File::open("challenge10.txt");
     let mut contents: Vec<u8> = vec![];
@@ -82,6 +84,7 @@ fn main() {
     let mac = create_hmac(&contents, &challenge31::KEY, Hash::MD4);
     println!("Expected: {}", bytes_to_hex(&mac.signature));
     println!("Timing attack yielded: {}", bytes_to_hex(&challenge31::challenge31()));*/
+    let d = DiffieHellman::new();
 }
 
 
