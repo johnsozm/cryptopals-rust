@@ -17,21 +17,18 @@ impl BigNum {
     }
 
     //Performs single-digit division of n / a
-    fn quick_divide(n: &BigNum, a: &BigNum) -> BigNum {
-        let num_zeros = a.segments.len() - 1;
-
-        let n_segments = n.segments[num_zeros..].to_vec();
-        let a_digit = a.segments[a.segments.len() - 1] as u16;
-
-        let mut quotient_segments = vec![];
+    fn quick_divide(n: &BigNum, a_digit: u16, num_zeros: usize) -> BigNum {
+       let mut quotient_segments = vec![];
         let mut remainder: u16 = 0;
 
-        for i in (0..n_segments.len()).rev() {
+        for i in (0..n.segments.len()-num_zeros).rev() {
             remainder <<= 8;
-            remainder += n_segments[i] as u16;
+            remainder += n.segments[i + num_zeros] as u16;
 
-            quotient_segments.push((remainder / a_digit) as u8);
-            remainder %= a_digit;
+            let digit_div = remainder / a_digit;
+
+            quotient_segments.push(digit_div as u8);
+            remainder -= a_digit * digit_div;
         }
 
         quotient_segments.reverse();
@@ -43,7 +40,7 @@ impl BigNum {
 
         return BigNum {
             segments: quotient_segments,
-            neg: n.neg ^ a.neg
+            neg: n.neg
         };
     }
 
@@ -81,24 +78,27 @@ impl BigNum {
         }
 
         //Construct initial divisor A as MSD of divisor followed by all 0s
-        let mut a_segments = divisor.segments.clone();
+        let a_digit = divisor.segments[divisor.segments.len() - 1] as u16;
+        let num_zeros = divisor.segments.len() - 1;
 
-        for i in 0..a_segments.len() - 1 {
-            a_segments[i] = 0;
-        }
-
-        let a = BigNum {
-            segments: a_segments,
-            neg: divisor.neg
-        };
-
-        let mut q = BigNum::quick_divide(self, &a);
+        let mut q = BigNum::quick_divide(self, a_digit, num_zeros);
         let mut r = divisor + &BigNum::from(1);
 
         while r.abs() >= *divisor {
             r = self - &(&q * divisor);
-            let qn = &q + &BigNum::quick_divide(&r, &a);
-            q = BigNum::quick_divide(&(&q + &qn), &BigNum::from(2));
+            let qn = &q + &BigNum::quick_divide(&r, a_digit, num_zeros);
+            //Exact division by 2 instead of a quick-divide, slightly improves performance
+            let mut new_seg = (&q + &qn).segments;
+            for i in 0..new_seg.len() - 1 {
+                new_seg[i] = (new_seg[i] >> 1) + (new_seg[i+1] << 7);
+            }
+            let last_index = new_seg.len() - 1;
+            new_seg[last_index] >>= 1;
+
+            q = BigNum {
+                segments: new_seg,
+                neg: q.neg
+            };
         }
 
         r = self - &(&q * divisor);
@@ -862,13 +862,12 @@ mod tests {
 
     #[test]
     fn test_quick_divide() {
-        let a = BigNum::from(6);
         let b = BigNum::from(1728);
         let c = BigNum::from(1730);
         let d = BigNum::from(288);
 
-        assert_eq!(BigNum::quick_divide(&b, &a), d);
-        assert_eq!(BigNum::quick_divide(&c, &a), d);
+        assert_eq!(BigNum::quick_divide(&b, 6, 0), d);
+        assert_eq!(BigNum::quick_divide(&c, 6, 0), d);
     }
 
     #[test]
