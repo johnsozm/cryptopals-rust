@@ -73,6 +73,7 @@ mod challenge31;
 mod challenge34;
 mod challenge35;
 //Challenge 36 was implementing the srp module - no additional code needed
+mod challenge37;
 
 fn main() {
     /*let file = File::open("challenge10.txt");

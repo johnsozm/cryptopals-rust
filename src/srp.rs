@@ -18,13 +18,13 @@ struct SRPDetails {
     k: Vec<u8>
 }
 
-struct SRPServer {
+pub struct SRPServer {
     logins: HashMap<String, SRPDetails>,
     public_key: Mpz,
     private_key: Mpz
 }
 
-struct SRPClient {
+pub struct SRPClient {
     email: String,
     password: String,
     pub public_key: Mpz,
