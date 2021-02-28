@@ -1,6 +1,7 @@
 ///Enum of all implemented hash functions
 pub enum Hash {
     SHA1,
+    SHA256,
     MD4
 }
 
@@ -9,6 +10,7 @@ impl Hash {
     pub fn digest(&self, message: &Vec<u8>) -> Vec<u8> {
         return match self {
             Hash::SHA1 => digest_sha1(&message),
+            Hash::SHA256 => digest_sha256(&message),
             Hash::MD4 => digest_md4(&message)
         }
     }
@@ -16,6 +18,7 @@ impl Hash {
     pub fn block_length(&self) -> usize {
         return match self {
             Hash::SHA1 => 64,
+            Hash::SHA256 => 64,
             Hash::MD4 => 64
         }
     }
@@ -23,6 +26,7 @@ impl Hash {
     pub fn hash_length(&self) -> usize {
         return match self {
             Hash::SHA1 => 20,
+            Hash::SHA256 => 32,
             Hash::MD4 => 16
         }
     }
@@ -117,6 +121,7 @@ fn digest_md4(message: &Vec<u8>) -> Vec<u8> {
     return digest_md4_from_state(&message, [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476], 0);
 }
 
+///Generates the MD4 digest of a message using the given internal state
 pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4], total_length: u64) -> Vec<u8> {
     let mut padded_message = message.clone();
     let ml: u64 = if total_length == 0 {(message.len() * 8) as u64} else {total_length};
@@ -220,6 +225,95 @@ pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4], total_leng
     return hash;
 }
 
+///Generates the SHA256 digest of a message
+fn digest_sha256(message: &Vec<u8>) -> Vec<u8> {
+    return digest_sha256_from_state(message, [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19], 0);
+}
+
+///Generates the SHA256 digest of a message from the given initial state
+fn digest_sha256_from_state(message: &Vec<u8>, h_init: [u32;8], total_length: u64) -> Vec<u8> {
+    //Initialize hash fields
+    let mut h_arr = h_init.clone();
+    let k: [u32;64] =
+    [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+
+    //Generate padded message for hashing
+    let mut padded_message = message.clone();
+    let ml: u64 = if total_length == 0 {(message.len() * 8) as u64} else {total_length};
+    padded_message.push(0x80);
+    while padded_message.len() % 64 != 56 {
+        padded_message.push(0);
+    }
+    padded_message.append(&mut ml.to_be_bytes().to_vec());
+
+    //Digest each 64-byte chunk
+    for block in 0..padded_message.len() / 64 {
+        //Initialize schedule array
+        let mut w = [0 as u32;64];
+        for i in 0..16 {
+            w[i] += (padded_message[64*block+4*i] as u32) << 24;
+            w[i] += (padded_message[64*block+4*i+1] as u32) << 16;
+            w[i] += (padded_message[64*block+4*i+2] as u32) << 8;
+            w[i] += padded_message[64*block+4*i+3] as u32;
+        }
+        for i in 16..64 {
+            let s0: u32 = w[i-15].rotate_right(7) ^ w[i-15].rotate_right(18) ^ (w[i-15] >> 3);
+            let s1: u32 = w[i-2].rotate_right(17) ^ w[i-2].rotate_right(19) ^ (w[i-2] >> 10);
+            w[i] = w[i-16].overflowing_add(s0).0.overflowing_add(w[i-7]).0.overflowing_add(s1).0;
+        }
+
+        let mut a = h_arr[0];
+        let mut b = h_arr[1];
+        let mut c = h_arr[2];
+        let mut d = h_arr[3];
+        let mut e = h_arr[4];
+        let mut f = h_arr[5];
+        let mut g = h_arr[6];
+        let mut h = h_arr[7];
+
+        for i in 0..64 {
+            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let ch = (e & f) ^ ((!e) & g);
+            let tmp1 = h.overflowing_add(s1).0.overflowing_add(ch).0.overflowing_add(k[i]).0.overflowing_add(w[i]).0;
+            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let maj = (a & b) ^ (a & c) ^ (b & c);
+            let tmp2 = s0.overflowing_add(maj).0;
+
+            h = g;
+            g = f;
+            f = e;
+            e = d.overflowing_add(tmp1).0;
+            d = c;
+            c = b;
+            b = a;
+            a = tmp1.overflowing_add(tmp2).0;
+        }
+
+        h_arr[0] = h_arr[0].overflowing_add(a).0;
+        h_arr[1] = h_arr[1].overflowing_add(b).0;
+        h_arr[2] = h_arr[2].overflowing_add(c).0;
+        h_arr[3] = h_arr[3].overflowing_add(d).0;
+        h_arr[4] = h_arr[4].overflowing_add(e).0;
+        h_arr[5] = h_arr[5].overflowing_add(f).0;
+        h_arr[6] = h_arr[6].overflowing_add(g).0;
+        h_arr[7] = h_arr[7].overflowing_add(h).0;
+    }
+
+    let mut hash = vec![];
+    for i in 0..8 {
+        hash.append(&mut h_arr[i].to_be_bytes().to_vec());
+    }
+
+    return hash;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -243,5 +337,17 @@ mod tests {
         assert_eq!(bytes_to_hex(&digest_md4(&ascii_to_bytes("abcdefghijklmnopqrstuvwxyz"))), "d79e1c308aa5bbcdeea8ed63df412da9");
         assert_eq!(bytes_to_hex(&digest_md4(&ascii_to_bytes("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"))), "43f8582f241db351ce627e153e7f0e4");
         assert_eq!(bytes_to_hex(&digest_md4(&ascii_to_bytes("12345678901234567890123456789012345678901234567890123456789012345678901234567890"))), "e33b4ddc9c38f2199c3e7b164fcc0536");
+    }
+
+    #[test]
+    fn test_sha256() {
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes(""))).to_uppercase(), "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855");
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes("a"))).to_uppercase(), "CA978112CA1BBDCAFAC231B39A23DC4DA786EFF8147C4E72B9807785AFEE48BB");
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes("abc"))).to_uppercase(), "BA7816BF8F01CFEA414140DE5DAE2223B00361A396177A9CB410FF61F20015AD");
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes("message digest"))).to_uppercase(), "F7846F55CF23E14EEBEAB5B4E1550CAD5B509E3348FBC4EFA3A1413D393CB650");
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes("abcdefghijklmnopqrstuvwxyz"))).to_uppercase(), "71C480DF93D6AE2F1EFAD1447C66C9525E316218CF51FC8D9ED832F2DAF18B73");
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"))).to_uppercase(), "248D6A61D20638B8E5C026930C3E6039A33CE45964FF2167F6ECEDD419DB06C1");
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"))).to_uppercase(), "DB4BFCBD4DA0CD85A60C3C37D3FBD8805C77F15FC6B1FDFE614EE0A7C8FDB4C0");
+        assert_eq!(bytes_to_hex(&digest_sha256(&ascii_to_bytes("12345678901234567890123456789012345678901234567890123456789012345678901234567890"))).to_uppercase(), "F371BC4A311F2B009EEF952DD83CA80E2B60026C8E935592D0F9C308453C813E");
     }
 }
