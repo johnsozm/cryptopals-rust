@@ -70,6 +70,7 @@ mod challenge31;
 //since it takes so long the test suite gives up. (Approx runtime on my machine: 4hr)
 //Challenge 33 was implementing the diffie_hellman module - no additional code needed
 mod challenge34;
+mod challenge35;
 
 fn main() {
     /*let file = File::open("challenge10.txt");

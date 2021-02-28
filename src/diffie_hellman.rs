@@ -59,11 +59,11 @@ impl DiffieHellman {
     }
 
     ///Generates a new Diffie-Hellman struct with the given public key
-    pub fn new_from_public_key(public_key: Mpz) -> DiffieHellman {
+    pub fn new_from_public_key(p: &Mpz, g: &Mpz, public_key: &Mpz) -> DiffieHellman {
         return DiffieHellman {
-            p: DEFAULT_P.clone(),
-            g: DEFAULT_G.clone(),
-            public_key,
+            p: p.clone(),
+            g: g.clone(),
+            public_key: public_key.clone(),
             private_key: Mpz::zero(),
             s: Mpz::zero(),
             aes_key: vec![]
@@ -92,10 +92,8 @@ impl DiffieHellman {
         self.s = Mpz::powm(&other.public_key, &self.private_key, &self.p);
         other.s = Mpz::powm(&self.public_key, &other.private_key, &self.p);
 
-        println!("{}", &self.s.to_str_radix(16));
-
-        self.aes_key = Hash::MD4.digest(&hex_to_bytes(&self.s.to_str_radix(16)));
-        other.aes_key = Hash::MD4.digest(&hex_to_bytes(&other.s.to_str_radix(16)));
+        self.aes_key = Hash::SHA1.digest(&hex_to_bytes(&self.s.to_str_radix(16)))[0..16].to_vec();
+        other.aes_key = Hash::SHA1.digest(&hex_to_bytes(&other.s.to_str_radix(16)))[0..16].to_vec();
     }
 
     ///Encrypt message using the generated session key and returns (ciphertext, IV)
