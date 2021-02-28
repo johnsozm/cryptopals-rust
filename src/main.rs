@@ -31,6 +31,7 @@ mod hash;
 mod mac;
 mod mt19937;
 mod padding;
+mod srp;
 mod xor;
 
 //Modules containing challenge solutions
@@ -71,6 +72,7 @@ mod challenge31;
 //Challenge 33 was implementing the diffie_hellman module - no additional code needed
 mod challenge34;
 mod challenge35;
+//Challenge 36 was implementing the srp module - no additional code needed
 
 fn main() {
     /*let file = File::open("challenge10.txt");
