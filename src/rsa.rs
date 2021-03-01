@@ -1,11 +1,17 @@
 use gmp::mpz::Mpz;
 use crate::converter::hex_to_bytes;
 use rand::random;
+use crate::hash::Hash;
 
 pub struct RSA {
     pub n: Mpz,
     pub e: Mpz,
     d: Mpz
+}
+
+pub struct RSASignature {
+    pub message: Vec<u8>,
+    pub signature: Mpz
 }
 
 ///Generates a random prime of the given bit length
@@ -92,6 +98,20 @@ impl RSA {
 
         return hex_to_bytes(&m.to_str_radix(16));
     }
+
+    pub fn sign_message(&self, message: &Vec<u8>) -> RSASignature {
+        let h = Mpz::from(&Hash::SHA256.digest(message)[0..]);
+        return RSASignature {
+            message: message.clone(),
+            signature: h.powm(&self.d, &self.n)
+        };
+    }
+
+    pub fn verify_signature(&self, signature: &RSASignature) -> bool {
+        let h = Mpz::from(&Hash::SHA256.digest(&signature.message)[0..]);
+        let v = signature.signature.powm(&self.e, &self.n);
+        return v == h;
+    }
 }
 
 #[cfg(test)]
@@ -144,5 +164,16 @@ mod tests {
         let a = Mpz::from(6);
         let n = Mpz::from(9);
         assert_eq!(inverse_mod(&a, &n), None);
+    }
+
+    #[test]
+    fn test_sign_verify() {
+        let r = RSA::new(1024);
+        let m = ascii_to_bytes("This is a test message for RSA signature");
+
+        let mut s = r.sign_message(&m);
+        assert!(r.verify_signature(&s));
+        s.signature = &s.signature + &Mpz::one();
+        assert!(!r.verify_signature(&s));
     }
 }
