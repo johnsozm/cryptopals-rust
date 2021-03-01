@@ -31,6 +31,7 @@ mod hash;
 mod mac;
 mod mt19937;
 mod padding;
+mod rsa;
 mod srp;
 mod srp_simple;
 mod xor;
@@ -76,6 +77,7 @@ mod challenge35;
 //Challenge 36 was implementing the srp module - no additional code needed
 mod challenge37;
 mod challenge38;
+//Challenge 39 was implementing the rsa module - no additional code needed
 
 fn main() {
     /*let file = File::open("challenge10.txt");
