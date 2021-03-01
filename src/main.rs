@@ -79,6 +79,7 @@ mod challenge37;
 mod challenge38;
 //Challenge 39 was implementing the rsa module - no additional code needed
 mod challenge40;
+mod challenge41;
 
 fn main() {
     /*let file = File::open("challenge10.txt");
