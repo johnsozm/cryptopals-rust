@@ -3,8 +3,8 @@ use crate::converter::hex_to_bytes;
 use rand::random;
 
 pub struct RSA {
-    n: Mpz,
-    e: Mpz,
+    pub n: Mpz,
+    pub e: Mpz,
     d: Mpz
 }
 
@@ -27,7 +27,7 @@ fn generate_prime(bit_length: usize) -> Mpz {
     return x.nextprime();
 }
 
-fn inverse_mod(a: &Mpz, b: &Mpz) -> Option<Mpz> {
+pub fn inverse_mod(a: &Mpz, b: &Mpz) -> Option<Mpz> {
     let mut t = Mpz::zero();
     let mut new_t = Mpz::one();
     let mut r = b.clone();

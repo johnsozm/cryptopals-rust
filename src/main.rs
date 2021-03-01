@@ -64,7 +64,7 @@ mod challenge24;
 mod challenge25;
 mod challenge26;
 mod challenge27;
-//Challenge 28 was implementing secret-prefix MAC - no additional code needed
+//Challenge 28 was implementing secret-prefix MAC in the mac module - no additional code needed
 mod challenge29;
 mod challenge30;
 mod challenge31;
@@ -78,6 +78,7 @@ mod challenge35;
 mod challenge37;
 mod challenge38;
 //Challenge 39 was implementing the rsa module - no additional code needed
+mod challenge40;
 
 fn main() {
     /*let file = File::open("challenge10.txt");
