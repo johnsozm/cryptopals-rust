@@ -32,6 +32,7 @@ mod mac;
 mod mt19937;
 mod padding;
 mod srp;
+mod srp_simple;
 mod xor;
 
 //Modules containing challenge solutions
@@ -74,6 +75,7 @@ mod challenge34;
 mod challenge35;
 //Challenge 36 was implementing the srp module - no additional code needed
 mod challenge37;
+mod challenge38;
 
 fn main() {
     /*let file = File::open("challenge10.txt");

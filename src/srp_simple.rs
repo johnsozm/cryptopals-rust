@@ -12,29 +12,29 @@ lazy_static! {
 }
 
 //Struct for holding login details for a single email address
-struct SRPDetails {
+struct SimpleSRPDetails {
     salt: u64,
     v: Mpz,
     k: Vec<u8>
 }
 
-pub struct SRPServer {
-    logins: HashMap<String, SRPDetails>,
+pub struct SimpleSRPServer {
+    logins: HashMap<String, SimpleSRPDetails>,
     public_key: Mpz,
     private_key: Mpz
 }
 
-pub struct SRPClient {
+pub struct SimpleSRPClient {
     email: String,
     password: String,
     pub public_key: Mpz,
     private_key: Mpz
 }
 
-impl SRPServer {
+impl SimpleSRPServer {
     //Generate a new server instance with no login details stored
-    pub fn new() -> SRPServer {
-        SRPServer {
+    pub fn new() -> SimpleSRPServer {
+        SimpleSRPServer {
             logins: HashMap::new(),
             public_key: Mpz::zero(),
             private_key: Mpz::zero()
@@ -53,11 +53,11 @@ impl SRPServer {
         let v = G.powm(&x, &N);
 
         //Store login record
-        self.logins.insert(email.to_string(), SRPDetails{salt, v, k: vec![]});
+        self.logins.insert(email.to_string(), SimpleSRPDetails{salt, v, k: vec![]});
     }
 
     ///Generates a new random public/private keypair for the server to use, given the value of V for this session
-    fn generate_keypair(&mut self, v: &Mpz) {
+    fn generate_keypair(&mut self) {
         let mut bytes: Vec<u8> = vec![];
         let target_len = (N.bit_length() / 8) + 1; //Want at least 1 more byte than bits
 
@@ -66,35 +66,34 @@ impl SRPServer {
         }
 
         self.private_key = Mpz::from_str_radix(&bytes_to_hex(&bytes), 16).unwrap() % N.clone();
-        self.public_key = ((K.clone()*v) - G.powm(&self.private_key, &N)).modulus(&N);
+        self.public_key = G.powm(&self.private_key, &N);
     }
 
     ///Implements initial client request. Client sends (email, public key) and server responds (salt, public key)
-    pub fn client_request(&mut self, email: &str, client_key: &Mpz) -> (u64, Mpz) {
-        let mut info: SRPDetails;
+    pub fn client_request(&mut self, email: &str, client_key: &Mpz) -> (u64, Mpz, u128) {
+        let mut info: SimpleSRPDetails;
         match self.logins.get(email) {
-            None => return (0, Mpz::zero()), //If email is not found, return null values
-            Some(i) => info = SRPDetails{salt: i.salt, v: i.v.clone(), k: vec![]}
+            None => return (0, Mpz::zero(), 0), //If email is not found, return null values
+            Some(i) => info = SimpleSRPDetails{salt: i.salt, v: i.v.clone(), k: vec![]}
         }
         let salt = info.salt;
 
-        //Generate new keys and calculate u = int(SHA256(A|B))
-        self.generate_keypair(&info.v);
-        let mut combined_key = vec![];
-        combined_key.append(&mut hex_to_bytes(&client_key.to_str_radix(16)));
-        combined_key.append(&mut hex_to_bytes(&self.public_key.to_str_radix(16)));
-
-        let u = Mpz::from(&Hash::SHA256.digest(&combined_key)[0..32]);
+        //Generate new keys and generate random u
+        self.generate_keypair();
+        let u: u128 = random();
+        let u_high = (u >> 64) as u64;
+        let u_low = u as u64;
+        let u_mpz = (Mpz::from(u_high) << 64) + Mpz::from(u_low);
 
         //Calculate s = (A*v^u) ^ b mod N and derive key
-        let base = client_key * info.v.powm(&u, &N);
+        let base = client_key * info.v.powm(&u_mpz, &N);
         let s = base.powm(&self.private_key, &N);
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
         info.k = Hash::SHA256.digest(&s_bytes);
 
         self.logins.insert(email.to_string(), info);
 
-        return (salt, self.public_key.clone());
+        return (salt, self.public_key.clone(), u);
     }
 
     ///Validates client's login attempt
@@ -113,10 +112,10 @@ impl SRPServer {
     }
 }
 
-impl SRPClient {
+impl SimpleSRPClient {
     ///Creates a new client instance which will attempt to log in with the given email and password
-    pub fn new(email: &str, password: &str) -> SRPClient {
-        let mut s = SRPClient {
+    pub fn new(email: &str, password: &str) -> SimpleSRPClient {
+        let mut s = SimpleSRPClient {
             email: email.to_string(),
             password: password.to_string(),
             public_key: Mpz::zero(),
@@ -141,22 +140,22 @@ impl SRPClient {
     }
 
     ///Generates login token from server response
-    pub fn generate_login(&self, salt: u64, server_key: &Mpz) -> MAC {
+    pub fn generate_login(&self, salt: u64, server_key: &Mpz, u: u128) -> MAC {
         //Calculate u = int(SHA256(A|B))
         let mut combined_key = vec![];
         combined_key.append(&mut hex_to_bytes(&self.public_key.to_str_radix(16)));
         combined_key.append(&mut hex_to_bytes(&server_key.to_str_radix(16)));
-        let u = Mpz::from(&Hash::SHA256.digest(&combined_key)[0..32]);
+        let u_high = (u >> 64) as u64;
+        let u_low = u as u64;
+        let u_mpz = (Mpz::from(u_high) << 64) + Mpz::from(u_low);
 
         //Calculate x = int(SHA256(salt|password))
         let mut x_h = salt.to_be_bytes().to_vec();
         x_h.append(&mut ascii_to_bytes(&self.password));
         let x = Mpz::from(&Hash::SHA256.digest(&x_h)[0..32]);
 
-        //Calculate S = (B - k*g^x) ^ (a + u*x) mod N
-        let base = server_key - (K.clone() * G.powm(&x, &N));
-        let exponent = self.private_key.clone() + (u * x);
-        let s = base.powm(&exponent, &N);
+        //Calculate S = B ^ (a + u*x) mod N
+        let s = server_key.powm(&(self.private_key.clone() + u_mpz*x), &N);
 
         //Calculate k = SHA256(s)
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
@@ -171,15 +170,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_srp_exchange() {
+    fn test_simple_srp_exchange() {
         let email = "test@email.str";
         let password = "p@ssw0rd";
-        let client = SRPClient::new(email, password);
-        let mut server = SRPServer::new();
+        let client = SimpleSRPClient::new(email, password);
+        let mut server = SimpleSRPServer::new();
         server.add_login(email, password);
 
-        let (salt, server_key) = server.client_request(email, &client.public_key);
-        let mac = client.generate_login(salt, &server_key);
+        let (salt, server_key, u) = server.client_request(email, &client.public_key);
+        let mac = client.generate_login(salt, &server_key, u);
         assert!(server.validate_login(email, &mac));
     }
 }
