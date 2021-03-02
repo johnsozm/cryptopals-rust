@@ -27,6 +27,7 @@ mod aes;
 mod bignum;
 mod converter;
 mod diffie_hellman;
+mod dsa;
 mod hash;
 mod mac;
 mod mt19937;
