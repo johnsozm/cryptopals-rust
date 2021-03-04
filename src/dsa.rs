@@ -44,6 +44,22 @@ impl DSA {
         };
     }
 
+    pub fn new_from_parameters(p: &Mpz, q: &Mpz, g: &Mpz) -> DSA {
+        //Generate random x mod q and y = g^x mod p
+        let mut bytes: Vec<u8> = vec![];
+        for _i in 0..q.bit_length()/8 {
+            bytes.push(random());
+        }
+        let x = Mpz::from(&bytes[0..]);
+        return DSA {
+            x: x.modulus(q),
+            y: g.powm(&x, p),
+            p: p.clone(),
+            q: q.clone(),
+            g: g.clone()
+        };
+    }
+
     ///Signs the given message using this instance's private key
     pub fn sign_message(&self, message: &Vec<u8>) -> DSASignature {
         //Generate random k mod q
@@ -111,5 +127,25 @@ mod tests {
         signature.r -= Mpz::one();
         signature.s -= Mpz::one();
         assert!(!d.verify_signature(&signature));
+    }
+
+    #[test]
+    fn test_default_new() {
+        let d = DSA::new();
+        assert_eq!(d.p, *DEFAULT_P);
+        assert_eq!(d.q, *DEFAULT_Q);
+        assert_eq!(d.g, *DEFAULT_G);
+    }
+
+    #[test]
+    fn test_new_from_parameters() {
+        let p = Mpz::from(7);
+        let q = Mpz::from(3);
+        let g = Mpz::from(2);
+        let d = DSA::new_from_parameters(&p, &q, &g);
+
+        assert_eq!(d.p, p);
+        assert_eq!(d.q, q);
+        assert_eq!(d.g, g);
     }
 }
