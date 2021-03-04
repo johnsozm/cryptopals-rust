@@ -37,7 +37,6 @@ mod tests {
     #[test]
     fn test_solution() {
         let x = challenge43();
-        println!("{}", x.to_str_radix(16));
         let x_bytes = ascii_to_bytes(&x.to_str_radix(16));
         let expected_hash = hex_to_bytes("0954edd5e0afe5542a4adf012611a91912a3ec16");
 
