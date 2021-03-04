@@ -85,6 +85,7 @@ mod challenge42;
 mod challenge43;
 mod challenge44;
 mod challenge45;
+mod challenge46;
 
 fn main() {
     /*let file = File::open("challenge10.txt");
