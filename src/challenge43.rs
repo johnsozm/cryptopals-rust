@@ -1,7 +1,7 @@
 use crate::hash::Hash;
 use gmp::mpz::Mpz;
 use crate::rsa::inverse_mod;
-use crate::dsa::{P, Q, G};
+use crate::dsa::{DEFAULT_P, DEFAULT_Q, DEFAULT_G};
 
 fn challenge43() -> Mpz {
     //Initialize known quantities
@@ -11,16 +11,16 @@ fn challenge43() -> Mpz {
     let h = Mpz::from_str_radix("d2d0714f014a9784047eaeccf956520045c45265", 16).unwrap();
 
     //Calculate r^-1
-    let r_inv = inverse_mod(&r, &Q).unwrap();
+    let r_inv = inverse_mod(&r, &DEFAULT_Q).unwrap();
 
     for k_value in 1..=65536 {
         //Calculate x
         let k = Mpz::from(k_value);
-        let num = ((&s * &k) - &h).modulus(&Q);
-        let x = (&num * &r_inv).modulus(&Q);
+        let num = ((&s * &k) - &h).modulus(&DEFAULT_Q);
+        let x = (&num * &r_inv).modulus(&DEFAULT_Q);
 
         //See if x gives us the expected public key
-        if G.powm(&x, &P) == y {
+        if DEFAULT_G.powm(&x, &DEFAULT_P) == y {
             return x;
         }
     }

@@ -2,7 +2,7 @@ use gmp::mpz::Mpz;
 use std::io::{BufRead, BufReader};
 use std::fs::File;
 use crate::rsa::inverse_mod;
-use crate::dsa::{P, Q, G};
+use crate::dsa::{DEFAULT_P, DEFAULT_Q, DEFAULT_G};
 
 fn challenge44() -> Mpz {
     let y = Mpz::from_str_radix("2d026f4bf30195ede3a088da85e398ef869611d0f68f0713d51c9c1a3a26c95105d915e2d8cdf26d056b86b8a7b85519b1c23cc3ecdc6062650462e3063bd179c2a6581519f674a61f1d89a1fff27171ebc1b93d4dc57bceb7ae2430f98a6a4d83d8279ee65d71c1203d2c96d65ebbf7cce9d32971c3de5084cce04a2e147821", 16).unwrap();
@@ -30,18 +30,18 @@ fn challenge44() -> Mpz {
     for i in 0..s.len() - 1 {
         for j in i+1..s.len() {
             //Calculate possible shared nonce
-            let m_diff = (&m[i] - &m[j]).modulus(&Q);
-            let s_diff = (&s[i] - &s[j]).modulus(&Q);
-            let s_diff_inv = inverse_mod(&s_diff, &Q).unwrap();
-            let k = (&m_diff * &s_diff_inv).modulus(&Q);
+            let m_diff = (&m[i] - &m[j]).modulus(&DEFAULT_Q);
+            let s_diff = (&s[i] - &s[j]).modulus(&DEFAULT_Q);
+            let s_diff_inv = inverse_mod(&s_diff, &DEFAULT_Q).unwrap();
+            let k = (&m_diff * &s_diff_inv).modulus(&DEFAULT_Q);
 
             //Calculate candidate private key for this nonce
-            let num = ((&s[i] * &k) - &m[i]).modulus(&Q);
-            let r_inv = inverse_mod(&r[i], &Q).unwrap();
-            let candidate_x = (&num * &r_inv).modulus(&Q);
+            let num = ((&s[i] * &k) - &m[i]).modulus(&DEFAULT_Q);
+            let r_inv = inverse_mod(&r[i], &DEFAULT_Q).unwrap();
+            let candidate_x = (&num * &r_inv).modulus(&DEFAULT_Q);
 
             //Check if candidate private key yields known public key
-            if G.powm(&candidate_x, &P) == y {
+            if DEFAULT_G.powm(&candidate_x, &DEFAULT_P) == y {
                 return candidate_x;
             }
         }
