@@ -178,7 +178,14 @@ mod tests {
         let mut server = SRPServer::new();
         server.add_login(email, password);
 
+        //Temp debug statements so I can repro intermittent failure
+        println!("Client public key: {}", client.public_key.to_str_radix(16));
+        println!("Client private key: {}", client.private_key.to_str_radix(16));
+        println!("Server public key: {}", server.public_key.to_str_radix(16));
+        println!("Server private key: {}", server.private_key.to_str_radix(16));
+
         let (salt, server_key) = server.client_request(email, &client.public_key);
+        println!("Salt: {}", salt);
         let mac = client.generate_login(salt, &server_key);
         assert!(server.validate_login(email, &mac));
     }
