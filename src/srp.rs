@@ -47,7 +47,7 @@ impl SRPServer {
         let salt: u64 = random();
         let mut x_h = salt.to_be_bytes().to_vec();
         x_h.append(&mut ascii_to_bytes(password));
-        let x = Mpz::from(&Hash::SHA256.digest(&x_h)[0..32]);
+        let x = Mpz::from(&Hash::SHA256.digest(&x_h)[0..]);
 
         //Cast hash to int and calculate G^x mod N
         let v = G.powm(&x, &N);
@@ -65,8 +65,8 @@ impl SRPServer {
             bytes.push(random());
         }
 
-        self.private_key = Mpz::from_str_radix(&bytes_to_hex(&bytes), 16).unwrap() % N.clone();
-        self.public_key = ((K.clone()*v) - G.powm(&self.private_key, &N)).modulus(&N);
+        self.private_key = Mpz::from_str_radix(&bytes_to_hex(&bytes), 16).unwrap().modulus(&N);
+        self.public_key = ((K.clone()*v) + G.powm(&self.private_key, &N)).modulus(&N);
     }
 
     ///Implements initial client request. Client sends (email, public key) and server responds (salt, public key)
@@ -84,11 +84,12 @@ impl SRPServer {
         combined_key.append(&mut hex_to_bytes(&client_key.to_str_radix(16)));
         combined_key.append(&mut hex_to_bytes(&self.public_key.to_str_radix(16)));
 
-        let u = Mpz::from(&Hash::SHA256.digest(&combined_key)[0..32]);
+        let u = Mpz::from(&Hash::SHA256.digest(&combined_key)[0..]);
 
         //Calculate s = (A*v^u) ^ b mod N and derive key
-        let base = client_key * info.v.powm(&u, &N);
+        let base = (client_key * info.v.powm(&u, &N)).modulus(&N);
         let s = base.powm(&self.private_key, &N);
+        println!("Server calculated s={}", s.to_str_radix(16));
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
         info.k = Hash::SHA256.digest(&s_bytes);
 
@@ -154,7 +155,7 @@ impl SRPClient {
         let x = Mpz::from(&Hash::SHA256.digest(&x_h)[0..32]);
 
         //Calculate S = (B - k*g^x) ^ (a + u*x) mod N
-        let base = server_key - (K.clone() * G.powm(&x, &N));
+        let base = (server_key - (K.clone() * G.powm(&x, &N))).modulus(&N);
         let exponent = self.private_key.clone() + (u * x);
         let s = base.powm(&exponent, &N);
 
@@ -162,7 +163,8 @@ impl SRPClient {
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
         let k = Hash::SHA256.digest(&s_bytes);
 
-        return create_hmac(&salt.to_be_bytes().to_vec(), &k, Hash::SHA256);
+        let h = create_hmac(&salt.to_be_bytes().to_vec(), &k, Hash::SHA256);
+        return h;
     }
 }
 
@@ -178,14 +180,7 @@ mod tests {
         let mut server = SRPServer::new();
         server.add_login(email, password);
 
-        //Temp debug statements so I can repro intermittent failure
-        println!("Client public key: {}", client.public_key.to_str_radix(16));
-        println!("Client private key: {}", client.private_key.to_str_radix(16));
-        println!("Server public key: {}", server.public_key.to_str_radix(16));
-        println!("Server private key: {}", server.private_key.to_str_radix(16));
-
         let (salt, server_key) = server.client_request(email, &client.public_key);
-        println!("Salt: {}", salt);
         let mac = client.generate_login(salt, &server_key);
         assert!(server.validate_login(email, &mac));
     }
