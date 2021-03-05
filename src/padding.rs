@@ -152,7 +152,7 @@ pub fn pkcs15_signature_unpad_lazy(message: &Vec<u8>) -> Result<Vec<u8>, Padding
 }
 
 pub fn pkcs15_message_pad(message: &Vec<u8>, bit_length: usize) -> Vec<u8> {
-    if message.len() > (bit_length/8) - 4 {
+    if message.len() > (bit_length/8) - 12 {
         panic!("Message too long to pad.");
     }
 
@@ -182,8 +182,13 @@ pub fn pkcs15_message_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError> 
 
     //Scan forward to delimiting 00 byte
     let mut index = 2;
-    while message[index] != 0 {
+    while message[index] != 0 && index < message.len() {
         index += 1;
+    }
+
+    //If there was no 00 byte, padding was not valid. Else return rest of bytes as the data.
+    if index == message.len() {
+        return Err(PaddingError::BadPKCS15MessagePadding);
     }
 
     return Ok(message[index+1..].to_vec());
