@@ -2,7 +2,7 @@ use gmp::mpz::Mpz;
 use crate::converter::hex_to_bytes;
 use rand::random;
 use crate::hash::Hash;
-use crate::padding::{pkcs15_pad, pkcs15_unpad_lazy};
+use crate::padding::{pkcs15_signature_pad, pkcs15_signature_unpad_lazy};
 
 pub struct RSA {
     pub n: Mpz,
@@ -102,7 +102,7 @@ impl RSA {
 
     pub fn sign_message(&self, message: &Vec<u8>) -> RSASignature {
         let hash = Hash::MD4.digest(&message);
-        let padded = pkcs15_pad(&hash, self.n.bit_length(), Hash::MD4);
+        let padded = pkcs15_signature_pad(&hash, self.n.bit_length(), Hash::MD4);
         let h = Mpz::from(&padded[0..]);
         return RSASignature {
             message: message.clone(),
@@ -116,7 +116,7 @@ impl RSA {
         let mut v_string = String::from("000"); //Leading zeroes will get trimmed so put them back
         v_string.push_str(&v.to_str_radix(16));
         let v_bytes = hex_to_bytes(&v_string);
-        return match pkcs15_unpad_lazy(&v_bytes) {
+        return match pkcs15_signature_unpad_lazy(&v_bytes) {
             Ok (hash) => h == hash,
             Err(_) => false
         }
