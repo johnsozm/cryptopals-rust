@@ -1,5 +1,7 @@
 use crate::hash::Hash;
 use crate::xor::xor_bytes;
+use crate::aes::encrypt_cbc;
+use crate::padding::pkcs7_pad;
 
 ///MAC message structure - contains message, signature, and the hash function used
 pub struct MAC {
@@ -80,11 +82,32 @@ pub fn verify_hmac(mac: &MAC, key: &Vec<u8>, hash_function: Hash) -> bool {
     return mac.signature == expected_signature;
 }
 
+///Creates a CBC-MAC signature for the message with the given secret key and IV.
+pub fn create_cbc_mac(message: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> MAC {
+    let ciphertext = encrypt_cbc(&pkcs7_pad(&message, 16), &key, &iv);
+    let num_blocks = ciphertext.len() / 16;
+    let signature = ciphertext[(num_blocks-1)*16..num_blocks*16].to_vec();
+    return MAC {
+        message: message.clone(),
+        signature
+    };
+}
+
+///Verifies a CBC-MAC signature using the given secret key and IV.
+pub fn verify_cbc_mac(mac: &MAC, key: &Vec<u8>, iv: &Vec<u8>) -> bool {
+    let ciphertext = encrypt_cbc(&pkcs7_pad(&mac.message, 16), &key, &iv);
+    let num_blocks = ciphertext.len() / 16;
+    let expected_signature = ciphertext[(num_blocks-1)*16..num_blocks*16].to_vec();
+    return expected_signature == mac.signature;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::converter::{ascii_to_bytes, bytes_to_hex, hex_to_bytes};
     use crate::hash::Hash;
+    use crate::aes::encrypt_cbc;
+    use crate::padding::pkcs7_pad;
 
     #[test]
     fn test_create_prefix_mac() {
@@ -145,5 +168,84 @@ mod tests {
 
         assert!(verify_hmac(&mac1, &key, Hash::SHA1));
         assert!(!verify_hmac(&mac2, &key, Hash::SHA1));
+    }
+
+    #[test]
+    fn test_create_cbc_mac() {
+        let key = ascii_to_bytes("YELLOW SUBMARINE");
+        let iv = vec![0x00; 16];
+        let message = ascii_to_bytes("The quick brown fox jumps over the lazy dog");
+
+        let encrypted = encrypt_cbc(&pkcs7_pad(&message, 16), &key, &iv);
+        let num_blocks = encrypted.len() / 16;
+        let mac = create_cbc_mac(&message, &key, &iv);
+        assert_eq!(mac.message, message);
+        assert_eq!(mac.signature, encrypted[(num_blocks-1)*16..num_blocks*16].to_vec());
+    }
+
+    #[test]
+    #[should_panic(expected="Illegal key length 13 passed as an AES key!")]
+    fn test_create_cbc_mac_bad_key() {
+        let key = ascii_to_bytes("YELLOW SUBMAR");
+        let iv = vec![0x00; 16];
+        let message = ascii_to_bytes("The quick brown fox jumps over the lazy dog");
+
+        create_cbc_mac(&message, &key, &iv);
+    }
+
+    #[test]
+    #[should_panic(expected="Illegal IV length 13 passed as an AES IV!")]
+    fn test_create_cbc_mac_bad_iv() {
+        let key = ascii_to_bytes("YELLOW SUBMARINE");
+        let iv = vec![0x00; 13];
+        let message = ascii_to_bytes("The quick brown fox jumps over the lazy dog");
+
+        create_cbc_mac(&message, &key, &iv);
+    }
+
+    #[test]
+    fn test_verify_cbc_mac() {
+        let key = ascii_to_bytes("YELLOW SUBMARINE");
+        let iv = vec![0x00; 16];
+        let message = ascii_to_bytes("The quick brown fox jumps over the lazy dog");
+
+        let encrypted = encrypt_cbc(&pkcs7_pad(&message, 16), &key, &iv);
+        let num_blocks = encrypted.len() / 16;
+        let mac1 = MAC {
+            message: message.clone(),
+            signature: encrypted[(num_blocks-1)*16..num_blocks*16].to_vec()
+        };
+        let mut mac2 = MAC {
+            message: message.clone(),
+            signature: encrypted[(num_blocks-1)*16..num_blocks*16].to_vec()
+        };
+        mac2.signature[12] -= 1;
+
+        assert!(verify_cbc_mac(&mac1, &key, &iv));
+        assert!(!verify_cbc_mac(&mac2, &key, &iv));
+    }
+
+    #[test]
+    #[should_panic(expected="Illegal key length 13 passed as an AES key!")]
+    fn test_verify_cbc_mac_bad_key() {
+        let key = ascii_to_bytes("YELLOW SUBMARINE");
+        let bad_key = ascii_to_bytes("YELLOW SUBMAR");
+        let iv = vec![0x00; 16];
+        let message = ascii_to_bytes("The quick brown fox jumps over the lazy dog");
+
+        let mac = create_cbc_mac(&message, &key, &iv);
+        verify_cbc_mac(&mac, &bad_key, &iv);
+    }
+
+    #[test]
+    #[should_panic(expected="Illegal IV length 13 passed as an AES IV!")]
+    fn test_verify_cbc_mac_bad_iv() {
+        let key = ascii_to_bytes("YELLOW SUBMARINE");
+        let iv = vec![0x00; 16];
+        let bad_iv = vec![0x00; 13];
+        let message = ascii_to_bytes("The quick brown fox jumps over the lazy dog");
+
+        let mac = create_cbc_mac(&message, &key, &iv);
+        verify_cbc_mac(&mac, &key, &bad_iv);
     }
 }
