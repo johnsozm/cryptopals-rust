@@ -1,4 +1,3 @@
-use crate::hash::Hash;
 use gmp::mpz::Mpz;
 use crate::rsa::inverse_mod;
 use crate::dsa::{DEFAULT_P, DEFAULT_Q, DEFAULT_G};
@@ -33,6 +32,7 @@ fn challenge43() -> Mpz {
 mod tests {
     use super::*;
     use crate::converter::{hex_to_bytes, ascii_to_bytes};
+    use crate::hash::Hash;
 
     #[test]
     fn test_solution() {

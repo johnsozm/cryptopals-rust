@@ -29,6 +29,7 @@ fn generate_prime(bit_length: usize) -> Mpz {
     }
 
     bytes[0] %= 1 << trailing_bits;
+    bytes[0] |= 1 << (trailing_bits - 1);
 
     let x = Mpz::from(&bytes[0..]);
     return x.nextprime();
@@ -75,6 +76,9 @@ impl RSA {
             let p = generate_prime(key_length / 2 - 10);
             let q = generate_prime(key_length / 2 + 10);
             ret.n = &p * &q;
+            if ret.n.bit_length() != key_length {
+                continue;
+            }
             let et = (&p - Mpz::one()) * (&q - Mpz::one());
             match inverse_mod(&ret.e, &et) {
                 None => continue,

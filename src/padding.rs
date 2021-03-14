@@ -182,7 +182,7 @@ pub fn pkcs15_message_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError> 
 
     //Scan forward to delimiting 00 byte
     let mut index = 2;
-    while message[index] != 0 && index < message.len() {
+    while index < message.len() && message[index] != 0 {
         index += 1;
     }
 
@@ -371,7 +371,7 @@ mod tests {
     #[should_panic(expected="Message too long to pad.")]
     fn test_pkcs15_message_pad_length_error() {
         let message = vec![22, 22, 22, 22, 22, 22];
-        pkcs15_message_pad(&message, 32);
+        pkcs15_message_pad(&message, 128);
     }
 
     #[test]
