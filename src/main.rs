@@ -89,6 +89,7 @@ mod challenge46;
 mod challenge47;
 //Challenge 48 work was added to challenge47 module.
 mod challenge49;
+mod challenge50;
 
 fn main() {
     /*let file = File::open("challenge10.txt");
