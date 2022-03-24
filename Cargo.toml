@@ -1,7 +1,7 @@
 [package]
 name = "cryptopals-rust"
 version = "0.1.0"
-authors = ["Zach Johnson <zachary.m.johnson@colorado.edu>"]
+authors = ["Zach Johnson <z.m.johnson@protonmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -11,5 +11,5 @@ aes = "0.6.0"
 rust-gmp = "0.5.0"
 lazy_static = "1.4.0"
 rand = "0.8.3"
-rocket = "0.4.7"
+rocket = "0.4.10"
 thiserror = "1.0"
