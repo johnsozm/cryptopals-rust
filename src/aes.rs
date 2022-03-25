@@ -328,8 +328,6 @@ mod tests {
         let plaintext = ascii_to_bytes("Yo, VIP Let's kick it Ice, Ice, baby Ice, Ice, baby ");
         let ciphertext = base64_to_bytes("L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==");
 
-        println!("{}", bytes_to_ascii(&decrypt_ctr(&ciphertext, &key, 0)));
-
         assert_eq!(decrypt_ctr(&ciphertext, &key, 0), plaintext);
     }
 

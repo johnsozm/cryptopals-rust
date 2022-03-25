@@ -43,8 +43,6 @@ fn challenge30() -> MAC {
 
     //Generate extended message for possible key lengths until one works
     loop {
-        println!("{}/{}", key_length, KEY.len()*8);
-
         let original_length = (original_mac.message.len() * 8) as u64 + key_length;
         let mut extended_message = original_mac.message.clone();
         let injection = ascii_to_bytes(";admin=true;");

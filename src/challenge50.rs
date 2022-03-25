@@ -56,6 +56,5 @@ mod tests {
     #[test]
     fn test_solution() {
         assert!(check_solution(&challenge50()));
-        println!("{}", challenge50());
     }
 }

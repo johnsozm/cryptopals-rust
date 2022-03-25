@@ -77,7 +77,6 @@ pub fn challenge31() -> Vec<u8> {
     for i in 0..Hash::MD4.hash_length() {
         let mut max_time: u128 = 0;
         let mut max_byte: u8 = 0;
-        println!("{}/{}", i, Hash::MD4.hash_length());
 
         for byte in 0..=255 as u8 {
             hash[i] = byte;
@@ -113,7 +112,6 @@ pub fn challenge31() -> Vec<u8> {
         }
 
         hash[i] = max_byte;
-        println!("{}", bytes_to_hex(&vec![max_byte]));
     }
 
     return vec![];
