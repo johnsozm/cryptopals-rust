@@ -1,19 +1,8 @@
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use crate::converter::{base64_to_bytes, ascii_to_bytes, bytes_to_ascii};
+use crate::converter::{ascii_to_bytes, bytes_to_ascii, base64_file_to_bytes_as_single};
 use crate::aes::decrypt_cbc;
 
 fn challenge10() -> String {
-    let file = File::open("challenge10.txt").unwrap();
-    let reader = BufReader::new(file);
-    let mut base64= String::from("");
-
-    //Read base-64 value across multiple lines
-    for line in reader.lines() {
-        base64 += &line.unwrap();
-    }
-
-    let ciphertext = base64_to_bytes(&base64);
+    let ciphertext = base64_file_to_bytes_as_single("challenge10.txt");
     let key = ascii_to_bytes("YELLOW SUBMARINE");
     let iv: Vec<u8> = vec![0; 16];
     let plaintext = decrypt_cbc(&ciphertext, &key, &iv);

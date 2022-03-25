@@ -1,8 +1,6 @@
 use rand::random;
 use crate::aes::{decrypt_ctr, encrypt_ctr};
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use crate::converter::base64_to_bytes;
+use crate::converter::base64_file_to_bytes_as_single;
 use crate::xor::xor_bytes;
 
 lazy_static! {
@@ -14,18 +12,7 @@ lazy_static! {
         k
     };
     static ref NONCE: u64 = random();
-    static ref CLEARTEXT: Vec<u8> = {
-        let file = File::open("challenge25.txt").unwrap();
-        let reader = BufReader::new(file);
-        let mut base64= String::from("");
-
-        //Read base-64 value across multiple lines
-        for line in reader.lines() {
-            base64 += &line.unwrap();
-        }
-
-        base64_to_bytes(&base64)
-    };
+    static ref CLEARTEXT: Vec<u8> = base64_file_to_bytes_as_single("challenge25.txt");
 }
 
 ///Implements the edit operation (allows for extension of ciphertext)

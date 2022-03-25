@@ -1,3 +1,6 @@
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+
 ///Casts a hex digit (of either case) to a byte value from 0-15.
 ///Will panic if an illegal digit is passed.
 fn hex_digit_to_byte(digit: char) -> u8 {
@@ -249,6 +252,51 @@ pub fn bytes_to_base64(bytes: &Vec<u8>) -> String {
     return base64;
 }
 
+///Reads a file as a series of newline-separated base64 strings,
+///and returns a list of byte vectors equivalent to the file.
+///Panics if the file cannot be found or a read error occurs.
+pub fn base64_file_to_bytes_by_line(filename: &str) -> Vec<Vec<u8>> {
+    let file = File::open(filename);
+    let mut bytes = vec![];
+    match file {
+        Err(_) => panic!("File not found - terminating."),
+        Ok(f) => {
+            let reader = BufReader::new(f);
+
+            //Read base-64 value on each line and append
+            for line in reader.lines() {
+                match line {
+                    Err(_) => panic!("Read error - terminating."),
+                    Ok(l) => bytes.push(base64_to_bytes(&l))
+                }
+            }
+            return bytes;
+        }
+    }
+}
+
+///Reads a file as a single base64 string, and returns an equivalent byte vector.
+///Panics if the file cannot be found or a read error occurs.
+pub fn base64_file_to_bytes_as_single(filename: &str) -> Vec<u8> {
+    let file = File::open(filename);
+    match file {
+        Err(_) => panic!("File not found - terminating."),
+        Ok(f) => {
+            let reader = BufReader::new(f);
+            let mut base64= String::from("");
+
+            //Read base-64 value across multiple lines
+            for line in reader.lines() {
+                match line {
+                    Err(_) => panic!("Read error - terminating."),
+                    Ok(l) => base64 += &l
+                }
+            }
+            return base64_to_bytes(&base64);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,5 +389,28 @@ mod tests {
         assert_eq!(bytes_to_base64(&b1), s1);
         assert_eq!(bytes_to_base64(&b2), s2);
         assert_eq!(bytes_to_base64(&b3), s3);
+    }
+
+    #[test]
+    fn test_base64_file_to_bytes_by_line() {
+        assert_eq!(base64_file_to_bytes_by_line("challenge20.txt")[0], base64_to_bytes("SSdtIHJhdGVkICJSIi4uLnRoaXMgaXMgYSB3YXJuaW5nLCB5YSBiZXR0ZXIgdm9pZCAvIFBvZXRzIGFyZSBwYXJhbm9pZCwgREoncyBELXN0cm95ZWQ="))
+    }
+
+    #[test]
+    #[should_panic(expected="File not found - terminating.")]
+    fn test_base64_file_to_bytes_by_line_bad_file() {
+        base64_file_to_bytes_by_line("nonexistentfile.txt");
+    }
+
+    #[test]
+    fn test_base64_file_to_bytes_as_single() {
+        let bytes = base64_file_to_bytes_as_single("challenge10.txt");
+        assert_eq!(&bytes[0..10], &vec![0x09, 0x12, 0x30, 0xaa, 0xde, 0x3e, 0xb3, 0x30, 0xdb, 0xaa][0..10]);
+    }
+
+    #[test]
+    #[should_panic(expected="File not found - terminating.")]
+    fn test_base64_file_to_bytes_as_single_bad_file() {
+        base64_file_to_bytes_as_single("nonexistentfile.txt");
     }
 }

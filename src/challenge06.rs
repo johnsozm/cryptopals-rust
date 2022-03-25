@@ -1,19 +1,8 @@
-use std::io::{BufRead, BufReader};
-use std::fs::File;
-use crate::converter::{base64_to_bytes, bytes_to_ascii};
+use crate::converter::{base64_file_to_bytes_as_single, bytes_to_ascii};
 use crate::xor::{guess_multi_byte_xor, xor_repeating};
 
 fn challenge6() -> String {
-    let file = File::open("challenge06.txt").unwrap();
-    let reader = BufReader::new(file);
-    let mut base64= String::from("");
-
-    //Read base-64 value across multiple lines
-    for line in reader.lines() {
-        base64 += &line.unwrap();
-    }
-
-    let ciphertext = base64_to_bytes(&base64);
+    let ciphertext = base64_file_to_bytes_as_single("challenge06.txt");
     let key = guess_multi_byte_xor(&ciphertext);
 
     let plaintext = xor_repeating(&ciphertext, &key);

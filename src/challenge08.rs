@@ -1,17 +1,12 @@
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use crate::converter::hex_to_bytes;
 use crate::aes::detect_ecb;
+use crate::converter::base64_file_to_bytes_by_line;
 
 fn challenge8() -> i32 {
-    let file = File::open("challenge08.txt").unwrap();
-    let reader = BufReader::new(file);
-    let mut count = 0;
+    let messages = base64_file_to_bytes_by_line("challenge08.txt");
 
-    //Check each line against ECB detector
-    for line in reader.lines() {
-        let bytes = hex_to_bytes(&line.unwrap());
-        if detect_ecb(&bytes) {
+    let mut count = 0;
+    for m in messages {
+        if detect_ecb(&m) {
             count += 1;
         }
     }

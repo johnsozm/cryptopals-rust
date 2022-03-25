@@ -1,17 +1,8 @@
-use crate::converter::{base64_to_bytes, bytes_to_ascii};
-use std::fs::File;
-use std::io::{BufReader, BufRead};
+use crate::converter::{base64_file_to_bytes_by_line, bytes_to_ascii};
 use crate::xor::{guess_multi_byte_xor, xor_repeating};
 
 fn challenge20() -> String {
-    //Read ciphertexts to file
-    let file = File::open("challenge20.txt").unwrap();
-    let reader = BufReader::new(file);
-    let mut ciphertexts = vec![];
-
-    for line in reader.lines() {
-        ciphertexts.push(base64_to_bytes(&line.unwrap()));
-    }
+    let mut ciphertexts = base64_file_to_bytes_by_line("challenge20.txt");
 
     //Truncate all ciphertexts to length of the shortest ciphertext
     let mut shortest_length = ciphertexts[0].len();
