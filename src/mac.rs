@@ -28,7 +28,7 @@ pub fn verify_prefix_max(mac: &MAC, key: &Vec<u8>, hash_function: Hash) -> bool 
     return expected_hash == mac.signature;
 }
 
-///Creates an HMAC for the given message using the given keu + hash function
+///Creates an HMAC for the given message using the given key + hash function
 pub fn create_hmac(message: &Vec<u8>, key: &Vec<u8>, hash_function: Hash) -> MAC {
     let mut padded_key= vec![];
 
@@ -43,13 +43,15 @@ pub fn create_hmac(message: &Vec<u8>, key: &Vec<u8>, hash_function: Hash) -> MAC
         padded_key = hash_function.digest(&key);
     }
 
+    //Compute inner block: (K' ^ ipad) || m
     let mut inner_block = xor_bytes(&padded_key, &vec![0x36; hash_function.block_length()]);
     inner_block.append(&mut message.clone());
 
+    //Compute outer block: (K' ^ opad) || H(inner block)
     let mut outer_block = xor_bytes(&padded_key, &vec![0x5c; hash_function.block_length()]);
     outer_block.append(&mut hash_function.digest(&inner_block));
 
-
+    //Create final MAC: message || H(outer block)
     return MAC {
         message: message.clone(),
         signature: hash_function.digest(&outer_block)
@@ -71,12 +73,15 @@ pub fn verify_hmac(mac: &MAC, key: &Vec<u8>, hash_function: Hash) -> bool {
         padded_key = hash_function.digest(&key);
     }
 
+    //Compute inner block: (K' ^ ipad) || m
     let mut inner_block = xor_bytes(&padded_key, &vec![0x36; hash_function.block_length()]);
     inner_block.append(&mut mac.message.clone());
 
+    //Compute outer block: (K' ^ opad) || H(inner block)
     let mut outer_block = xor_bytes(&padded_key, &vec![0x5c; hash_function.block_length()]);
     outer_block.append(&mut hash_function.digest(&inner_block));
 
+    //Compute expected signature: H(outer block)
     let expected_signature = hash_function.digest(&outer_block);
 
     return mac.signature == expected_signature;
@@ -84,9 +89,13 @@ pub fn verify_hmac(mac: &MAC, key: &Vec<u8>, hash_function: Hash) -> bool {
 
 ///Creates a CBC-MAC signature for the message with the given secret key and IV.
 pub fn create_cbc_mac(message: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> MAC {
+    //Compute CBC encryption of message
     let ciphertext = encrypt_cbc(&pkcs7_pad(&message, 16), &key, &iv);
+
+    //Compute signature as final block of encryption
     let num_blocks = ciphertext.len() / 16;
     let signature = ciphertext[(num_blocks-1)*16..num_blocks*16].to_vec();
+
     return MAC {
         message: message.clone(),
         signature
@@ -95,9 +104,13 @@ pub fn create_cbc_mac(message: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> MAC {
 
 ///Verifies a CBC-MAC signature using the given secret key and IV.
 pub fn verify_cbc_mac(mac: &MAC, key: &Vec<u8>, iv: &Vec<u8>) -> bool {
+    //Compute CBC encryption of message
     let ciphertext = encrypt_cbc(&pkcs7_pad(&mac.message, 16), &key, &iv);
+
+    //Compute expected signature as final block of encryption
     let num_blocks = ciphertext.len() / 16;
     let expected_signature = ciphertext[(num_blocks-1)*16..num_blocks*16].to_vec();
+
     return expected_signature == mac.signature;
 }
 

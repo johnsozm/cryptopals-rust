@@ -15,11 +15,13 @@ lazy_static! {
     };
 }
 
+///Generates original secret-prefix MAC message
 fn generate_original_mac() -> MAC {
     let message = ascii_to_bytes("comment1=cooking%20MCs;userdata=foo;comment2=%20like%20a%20pound%20of%20bacon");
     return create_prefix_mac(&message, &KEY, Hash::MD4)
 }
 
+///Checks if the given token has a valid MAC and contains ";admin=true;"
 fn is_admin(token: &MAC) -> bool {
     let ascii = bytes_to_ascii(&token.message);
     return ascii.contains(";admin=true;") && verify_prefix_max(&token, &KEY, Hash::MD4);

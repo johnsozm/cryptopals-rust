@@ -7,7 +7,7 @@ fn challenge4() -> String {
     let file = File::open("challenge04.txt").unwrap();
     let reader = BufReader::new(file);
     let mut best_line: Vec<u8> = vec![];
-    let mut best_score = 999.999;
+    let mut best_score = f64::INFINITY;
 
     //Find decoded line that has the lowest frequency difference from English
     for line in reader.lines() {

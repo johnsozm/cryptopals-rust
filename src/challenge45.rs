@@ -7,7 +7,7 @@ fn challenge45(y: &Mpz) -> DSASignature {
     let q = DEFAULT_Q.clone();
     let g = &p + Mpz::one();
 
-    //Calculate universal signature using malicious parameters
+    //Calculate universal signature using malicious G
     let z = Mpz::from(5);
     let z_inv = inverse_mod(&z, &q).unwrap();
     let r = y.powm(&z, &p).modulus(&q);

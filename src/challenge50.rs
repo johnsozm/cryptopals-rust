@@ -10,6 +10,7 @@ lazy_static! {
     static ref TARGET_HASH: Vec<u8> = hex_to_bytes("296b8d7cb78a243dda4d0a61d33bbdd1");
 }
 
+///Confirms that the given code is correct and gives the correct CBC-MAC signature
 fn check_solution(code: &str) -> bool {
     let mac = create_cbc_mac(&ascii_to_bytes(code), &KEY, &IV);
     return code.starts_with("alert('Ayo, the Wu is back!');//") && mac.signature == *TARGET_HASH;

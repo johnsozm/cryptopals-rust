@@ -24,7 +24,6 @@ mod alphabetic;
 
 //Utility modules for the challenges to use
 mod aes;
-mod bignum;
 mod converter;
 mod diffie_hellman;
 mod dsa;

@@ -11,19 +11,21 @@ lazy_static! {
     pub static ref K: Mpz = Mpz::from(3);
 }
 
-//Struct for holding login details for a single email address
+///Struct for holding login details for a single email address
 struct SRPDetails {
     salt: u64,
     v: Mpz,
     k: Vec<u8>
 }
 
+///Struct for an SRP server, which can maintain many login details
 pub struct SRPServer {
     logins: HashMap<String, SRPDetails>,
     public_key: Mpz,
     private_key: Mpz
 }
 
+///Struct for an SRP client, which can attempt to log into the server with its email + password
 pub struct SRPClient {
     email: String,
     password: String,
@@ -32,7 +34,7 @@ pub struct SRPClient {
 }
 
 impl SRPServer {
-    //Generate a new server instance with no login details stored
+    ///Generate a new server instance with no login details stored
     pub fn new() -> SRPServer {
         SRPServer {
             logins: HashMap::new(),
@@ -56,10 +58,10 @@ impl SRPServer {
         self.logins.insert(email.to_string(), SRPDetails{salt, v, k: vec![]});
     }
 
-    ///Generates a new random public/private keypair for the server to use, given the value of V for this session
+    ///Generates a new random keypair for the server to use, given the value of V for this session
     fn generate_keypair(&mut self, v: &Mpz) {
         let mut bytes: Vec<u8> = vec![];
-        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 more byte than bits
+        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 extra byte
 
         for _i in 0..target_len {
             bytes.push(random());
@@ -71,6 +73,7 @@ impl SRPServer {
 
     ///Implements initial client request. Client sends (email, public key) and server responds (salt, public key)
     pub fn client_request(&mut self, email: &str, client_key: &Mpz) -> (u64, Mpz) {
+        //Get details for the requested email - error out if not found.
         let mut info: SRPDetails;
         match self.logins.get(email) {
             None => return (0, Mpz::zero()), //If email is not found, return null values
@@ -89,10 +92,10 @@ impl SRPServer {
         //Calculate s = (A*v^u) ^ b mod N and derive key
         let base = (client_key * info.v.powm(&u, &N)).modulus(&N);
         let s = base.powm(&self.private_key, &N);
-        println!("Server calculated s={}", s.to_str_radix(16));
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
         info.k = Hash::SHA256.digest(&s_bytes);
 
+        //Update this email's info with derived key and respond to client
         self.logins.insert(email.to_string(), info);
 
         return (salt, self.public_key.clone());
@@ -128,10 +131,10 @@ impl SRPClient {
         return s;
     }
 
-    ///Generates a new random public/private keypair for the server to use
+    ///Generates a new random keypair for the client to use
     fn generate_keypair(&mut self) {
         let mut bytes: Vec<u8> = vec![];
-        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 more byte than bits
+        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 extra byte
 
         for _i in 0..target_len {
             bytes.push(random());
@@ -163,8 +166,8 @@ impl SRPClient {
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
         let k = Hash::SHA256.digest(&s_bytes);
 
-        let h = create_hmac(&salt.to_be_bytes().to_vec(), &k, Hash::SHA256);
-        return h;
+        //Generate HMAC with the generated key
+        return create_hmac(&salt.to_be_bytes().to_vec(), &k, Hash::SHA256);
     }
 }
 

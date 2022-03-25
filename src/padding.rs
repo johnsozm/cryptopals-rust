@@ -8,10 +8,10 @@ pub enum PaddingError {
     ///Error for bad padding on a PKCS7 string
     #[error("String was not properly PKCS#7 padded.")]
     BadPKCS7Padding,
-    //Error for bad padding on a PKCS1.5 signature
+    ///Error for bad padding on a PKCS1.5 signature
     #[error("String was not a properly PKCS#1.5 padded signature")]
     BadPKCS15SignaturePadding,
-    //Error for bad padding on a PKCS1.5 message
+    ///Error for bad padding on a PKCS1.5 message
     #[error("String was not a properly PKCS#1.5 padded message")]
     BadPKCS15MessagePadding,
 }
@@ -22,6 +22,7 @@ pub fn pkcs7_pad(message: &Vec<u8>, block_size: usize) -> Vec<u8> {
     let pad_length = block_size - (message.len() % block_size);
     let mut padded = message.clone();
 
+    //Add exactly pad_length bytes of value pad_length
     for _i in 0..pad_length {
         padded.push(pad_length as u8);
     }
@@ -32,6 +33,7 @@ pub fn pkcs7_pad(message: &Vec<u8>, block_size: usize) -> Vec<u8> {
 ///Unpads a PKCS#7 padded string.
 ///Returns an error if the string is not properly padded.
 pub fn pkcs7_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError> {
+    //Take pad length to be the value of the last byte
     let pad_length: usize = message[message.len() - 1] as usize;
 
     //Verify last pad_length bytes have value pad_length
@@ -44,13 +46,14 @@ pub fn pkcs7_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError> {
         }
     }
 
+    //Return message with padding removed
     return Ok(message[0..message.len()-pad_length].to_vec());
 }
 
 ///Pads a signature to the given block size according to the PKCS#1.5 padding scheme.
 pub fn pkcs15_signature_pad(message: &Vec<u8>, bit_length: usize, signature_algorithm: Hash) -> Vec<u8> {
     if message.len() > (bit_length/8) - 11 {
-        panic!("Message too long to pad.");
+        panic!("Message too long to pad to this bit length.");
     }
     if message.len() != signature_algorithm.hash_length() {
         panic!("Message length does not match expected hash length.");
@@ -60,18 +63,17 @@ pub fn pkcs15_signature_pad(message: &Vec<u8>, bit_length: usize, signature_algo
     let pad_len = (bit_length / 8) - asn1_len - 3; //Length of 0xff padding
     let mut padded = vec![];
 
-    //Pad header
+    //Append pad header
     padded.push(0x00);
     padded.push(0x01);
 
-    //0xff padding
+    //Append 0xff padding
     padded.append(&mut vec![0xff; pad_len]);
 
-    //Pad termination
+    //Append pad termination
     padded.push(0x00);
 
-    //ASN.1 header
-    //Sequence header
+    //Append sequence header
     padded.push(0x70); //Object is a constructed sequence
     padded.push((message.len() + 5) as u8); //Object will be hash length + 5 bytes long
 
@@ -84,10 +86,12 @@ pub fn pkcs15_signature_pad(message: &Vec<u8>, bit_length: usize, signature_algo
         Hash::MD4 => padded.push(4)
     }
 
-    //Append hash bytes
+    //Append hash header
     padded.push(0x44); //Object is an octet string
     padded.push(signature_algorithm.hash_length() as u8); //Length is equal to hash length
-    padded.append(&mut message.clone()); //Contents are hash bytes
+
+    //Append hash bytes
+    padded.append(&mut message.clone());
 
     return padded;
 }
@@ -109,11 +113,13 @@ pub fn pkcs15_signature_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError
         return Err(PaddingError::BadPKCS15SignaturePadding);
     }
 
+    //confirm message length is valid
     let asn_len = message[index+2];
     if asn_len as usize + index + 3 as usize != message.len() {
         return Err(PaddingError::BadPKCS15SignaturePadding);
     }
 
+    //Infer hash length from hash algorithm
     let hash_len = match message[index + 5] {
         4 => Hash::MD4.hash_length(),
         6 => Hash::SHA1.hash_length(),
@@ -121,6 +127,7 @@ pub fn pkcs15_signature_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError
         _ => return Err(PaddingError::BadPKCS15SignaturePadding)
     };
 
+    //Return hash bytes
     return Ok(message[index+8..index+8+hash_len].to_vec());
 }
 
@@ -141,6 +148,7 @@ pub fn pkcs15_signature_unpad_lazy(message: &Vec<u8>) -> Result<Vec<u8>, Padding
         return Err(PaddingError::BadPKCS15SignaturePadding);
     }
 
+    //Infer hash length from hash algorithm
     let hash_len = match message[index + 5] {
         4 => Hash::MD4.hash_length(),
         6 => Hash::SHA1.hash_length(),
@@ -148,12 +156,14 @@ pub fn pkcs15_signature_unpad_lazy(message: &Vec<u8>) -> Result<Vec<u8>, Padding
         _ => return Err(PaddingError::BadPKCS15SignaturePadding)
     };
 
+    //Return hash bytes
     return Ok(message[index+8..index+8+hash_len].to_vec());
 }
 
+///Pads a message to the given bit length according to the PKCS#1.5 padding scheme.
 pub fn pkcs15_message_pad(message: &Vec<u8>, bit_length: usize) -> Vec<u8> {
     if message.len() > (bit_length/8) - 12 {
-        panic!("Message too long to pad.");
+        panic!("Message too long to pad to this bit length.");
     }
 
     //Initialize with 00 02 bytes
@@ -174,6 +184,8 @@ pub fn pkcs15_message_pad(message: &Vec<u8>, bit_length: usize) -> Vec<u8> {
     return padded;
 }
 
+///Unpads a PKCS#1.5 padded message.
+///Returns an error if the message is not properly padded.
 pub fn pkcs15_message_unpad(message: &Vec<u8>) -> Result<Vec<u8>, PaddingError> {
     //Confirm message starts with 00 02 bytes
     if message[0] != 0 || message[1] != 2 {
@@ -262,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected="Message too long to pad.")]
+    #[should_panic(expected="Message too long to pad to this bit length.")]
     fn test_pkcs15_signature_pad_length_error() {
         let message = vec![0x55; 1000];
         pkcs15_signature_pad(&message, 1024, Hash::MD4);
@@ -368,7 +380,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected="Message too long to pad.")]
+    #[should_panic(expected="Message too long to pad to this bit length.")]
     fn test_pkcs15_message_pad_length_error() {
         let message = vec![22, 22, 22, 22, 22, 22];
         pkcs15_message_pad(&message, 128);

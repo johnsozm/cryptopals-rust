@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use crate::xor::xor_bytes;
 
 ///Encrypts plaintext using AES-ECB and the given 16-byte key.
-///Will panic if key is not 16 bytes or plaintext is not a multiple of 16 bytes.
+///Will panic if key length is not 16 bytes or plaintext length is not a multiple of 16 bytes.
 pub fn encrypt_ecb(plaintext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
@@ -28,7 +28,7 @@ pub fn encrypt_ecb(plaintext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
 }
 
 ///Decrypts ciphertext using AES-ECB and the given 16-byte key.
-///Will panic if key is not 16 bytes or ciphertext is not a multiple of 16 bytes.
+///Will panic if key length is not 16 bytes or ciphertext length is not a multiple of 16 bytes.
 pub fn decrypt_ecb(ciphertext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
@@ -51,7 +51,7 @@ pub fn decrypt_ecb(ciphertext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
 }
 
 ///Detects use of ECB mode by searching for repeated blocks.
-///Will panic if ciphertext is not a multiple of 16 bytes.
+///Will panic if ciphertext length is not a multiple of 16 bytes.
 pub fn detect_ecb(ciphertext: &Vec<u8>) -> bool {
     if ciphertext.len() % 16 != 0 {
         panic!("Partial block of length {} passed for AES analysis!", ciphertext.len() % 16);
@@ -66,7 +66,8 @@ pub fn detect_ecb(ciphertext: &Vec<u8>) -> bool {
 }
 
 ///Encrypts plaintext using AES-CBC mode and the given key and IV.
-///Will panic if key is not 16 bytes, IV is not 16 bytes, or plaintext is not a multiple of 16 bytes.
+///Will panic if key length is not 16 bytes, IV length is not 16 bytes,
+///or plaintext length is not a multiple of 16 bytes.
 pub fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
@@ -92,7 +93,8 @@ pub fn encrypt_cbc(plaintext: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> 
 }
 
 ///Decrypts ciphertext using AES-CBC mode and the given key and IV.
-///Will panic if key is not 16 bytes, IV is not 16 bytes, or ciphertext is not a multiple of 16 bytes.
+///Will panic if key length is not 16 bytes, IV length is not 16 bytes,
+///or ciphertext length is not a multiple of 16 bytes.
 pub fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
@@ -118,7 +120,7 @@ pub fn decrypt_cbc(ciphertext: &Vec<u8>, key: &Vec<u8>, iv: &Vec<u8>) -> Vec<u8>
 }
 
 ///Encrypts plaintext using AES-CTR mode and the given key and nonce.
-///Will panic if key is not 16 bytes.
+///Will panic if key length is not 16 bytes.
 pub fn encrypt_ctr(plaintext: &Vec<u8>, key: &Vec<u8>, nonce: u64) -> Vec<u8> {
     if key.len() != 16 {
         panic!("Illegal key length {} passed as an AES key!", key.len());
@@ -140,7 +142,7 @@ pub fn encrypt_ctr(plaintext: &Vec<u8>, key: &Vec<u8>, nonce: u64) -> Vec<u8> {
 }
 
 ///Decrypts ciphertext using AES-CTR mode and the given key and nonce.
-///Will panic if key is not 16 bytes.
+///Will panic if key length is not 16 bytes.
 pub fn decrypt_ctr(ciphertext: &Vec<u8>, key: &Vec<u8>, nonce: u64) -> Vec<u8> {
     return encrypt_ctr(&ciphertext, &key, nonce);
 }

@@ -11,9 +11,11 @@ fn get_ts() -> u32 {
 }
 
 fn challenge22(output: u32) -> u32 {
+    //Get current Unix timestamp
     let time = SystemTime::now().duration_since(UNIX_EPOCH);
     let mut ts = time.unwrap().as_millis() as u32;
 
+    //Test Unix timestamps as seeds, stepping 1ms back each try
     loop {
         let mut mt = MT19937::from_seed(ts);
         if mt.extract_number() == output {

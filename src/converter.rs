@@ -30,8 +30,8 @@ fn byte_to_hex_digit(byte: u8) -> char {
     }
 }
 
-//Casts a base-64 digit to a byte value from 0-63.
-//Will panic if an illegal digit is passed.
+///Casts a base-64 digit to a byte value from 0-63.
+///Will panic if an illegal digit is passed.
 fn base_64_digit_to_byte(digit: char) -> u8 {
     if !(digit >= 'A' && digit <= 'Z')
         && !(digit >= 'a' && digit <= 'z')
@@ -56,8 +56,8 @@ fn base_64_digit_to_byte(digit: char) -> u8 {
     }
 }
 
-//Gets the base64 digit corresponding to a byte value.
-//Will panic if an illegal value is passed.
+///Gets the base64 digit corresponding to a byte value.
+///Will panic if an illegal value is passed.
 fn byte_to_base_64_digit(digit: u8) -> char {
     if digit > 63 {
         panic!("Illegal base64 value {}", digit);
@@ -132,7 +132,7 @@ pub fn ascii_to_bytes(ascii: &str) -> Vec<u8> {
     return bytes;
 }
 
-//Processes a byte vector into the corresponding ASCII string
+///Processes a byte vector into the corresponding ASCII string
 pub fn bytes_to_ascii(bytes: &Vec<u8>) -> String {
     let mut ascii: String = String::from("");
 
@@ -143,8 +143,9 @@ pub fn bytes_to_ascii(bytes: &Vec<u8>) -> String {
     return ascii;
 }
 
-//Decodes a Base64 string to the corresponding bytes
+///Decodes a Base64 string to the corresponding bytes
 pub fn base64_to_bytes(base64: &str) -> Vec<u8> {
+    //If base-64 string is not padded, add padding in and recurse
     if base64.len() % 4 != 0 {
         let mut padded = String::from(base64);
         padded.push_str(&"=".repeat(4 - base64.len() % 4));
@@ -166,6 +167,7 @@ pub fn base64_to_bytes(base64: &str) -> Vec<u8> {
 
     let len = base64.len() - pad;
 
+    //For each quartet of characters, calculate the corresponding byte triplet and append
     for _i in 0..len/4 {
         for j in 0..4 {
             match it.next() {
@@ -179,6 +181,7 @@ pub fn base64_to_bytes(base64: &str) -> Vec<u8> {
         bytes.push((values[2] << 6) + values[3]);
     }
 
+    //Separate handling for padded quartet if present
     if pad > 0 {
         for i in 0..(4 - pad) {
             match it.next() {
@@ -197,18 +200,21 @@ pub fn base64_to_bytes(base64: &str) -> Vec<u8> {
     return bytes;
 }
 
-//Formats bytes as a Base64 string
+///Processes a byte vector into the corresponding Base64 string
 pub fn bytes_to_base64(bytes: &Vec<u8>) -> String {
     let mut base64: String = String::from("");
     if bytes.len() == 0 {
         return base64;
     }
+
+    //Compute needed padding
     let mut pad= 3 - (bytes.len() % 3);
     if pad == 3 {
         pad = 0;
     }
     let block_len = bytes.len() - (2 - pad + 1); //Points to first byte in final 3-byte block
 
+    //For each full byte trio, compute the Base64 digit quartet and append
     for i in 0..bytes.len() / 3 {
         let d1 = (bytes[3*i] >> 2) & 0x3f;
         let d2 = ((bytes[3*i] << 4) & 0x3f) + ((bytes[3*i+1] >> 4) & 0x0f);
@@ -220,6 +226,7 @@ pub fn bytes_to_base64(bytes: &Vec<u8>) -> String {
         base64.push(byte_to_base_64_digit(d4));
     }
 
+    //Special handling for incomplete byte trio
     if pad > 0 {
         let d1 = (bytes[block_len] >> 2) & 0x3f;
         base64.push(byte_to_base_64_digit(d1));
@@ -236,6 +243,7 @@ pub fn bytes_to_base64(bytes: &Vec<u8>) -> String {
         }
     }
 
+    //Add padding to string and return
     base64.push_str(&"=".repeat(pad));
 
     return base64;

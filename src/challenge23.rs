@@ -1,9 +1,9 @@
 use crate::mt19937::{MT19937, untemper};
 
 fn challenge23(output: [u32;624]) -> MT19937 {
-    let mut state = output.clone();
+    let mut state = [0; 624];
     for i in 0..624 {
-        state[i] = untemper(state[i]);
+        state[i] = untemper(output[i]);
     }
 
     return MT19937::from_state(state, 624);

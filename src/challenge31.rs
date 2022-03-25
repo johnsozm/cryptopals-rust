@@ -67,12 +67,13 @@ fn check_signature(filename: String, signature: String) -> Status {
 }
 
 pub fn challenge31() -> Vec<u8> {
+    //Initialize webserver
     let target_base = "/check/challenge10.txt/";
     let mut hash: Vec<u8> = vec![0;Hash::MD4.hash_length()];
     let rocket = rocket::ignite().mount("/", routes![check_signature]);
     let client = Client::new(rocket).expect("valid rocket instance");
 
-    //Perform timing channel attack on server
+    //For each byte, time all possible values for the byte and assume longest time -> correct byte
     for i in 0..Hash::MD4.hash_length() {
         let mut max_time: u128 = 0;
         let mut max_byte: u8 = 0;

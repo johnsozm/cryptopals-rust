@@ -11,7 +11,7 @@ lazy_static! {
     static ref HASH: Vec<u8> = Hash::SHA256.digest(&CIPHERTEXT);
 }
 
-//Decrypt function that will refuse to decrypt the original ciphertext
+///Decrypt function that will refuse to decrypt the original ciphertext
 fn decrypt_blob(blob: &Vec<u8>) -> Vec<u8> {
     let h = Hash::SHA256.digest(blob);
     if h == *HASH {

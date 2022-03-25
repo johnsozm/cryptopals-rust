@@ -7,10 +7,12 @@ lazy_static! {
     static ref RSA_SERVER: RSA = RSA::new(1024);
 }
 
+///Returns ciphertext of secret message
 fn get_original_ciphertext() -> Vec<u8> {
     return RSA_SERVER.encrypt(&ascii_to_bytes(&MESSAGE));
 }
 
+///Decrypts ciphertext and returns the last bit of the yielded plaintext
 fn parity_oracle(ciphertext: &Vec<u8>) -> bool {
     let b = RSA_SERVER.decrypt(ciphertext);
     return b[b.len() - 1] % 2 == 1;
@@ -24,6 +26,7 @@ fn challenge46() -> String {
     let mut denominator = Mpz::one();
     let factor = Mpz::from(2).powm(&RSA_SERVER.e, &RSA_SERVER.n);
 
+    //Repeatedly multiply ciphertext by 2 ^ e mod n (ie, plaintext by 2) to tighten bounds
     for _i in 0..RSA_SERVER.n.bit_length() {
         ciphertext = (&ciphertext * &factor).modulus(&RSA_SERVER.n);
         lower_num <<= 1;

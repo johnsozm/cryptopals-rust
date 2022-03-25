@@ -13,13 +13,14 @@ lazy_static! {
     };
 }
 
+///Checks if the given encrypted profile string has the admin flag
 fn is_admin(profile: Vec<u8>) -> bool {
     let plaintext = pkcs7_unpad(&decrypt_ecb(&profile, &KEY));
     let ascii = bytes_to_ascii(&plaintext.unwrap());
     return ascii.contains("&role=admin");
 }
 
-//Generates encrypted profile for the given email
+///Generates encrypted profile for the given email
 fn profile_for(email: &str) -> Vec<u8> {
     let escaped = email.replace("&", "").replace("=", "");
     let mut profile = String::from("email=");
@@ -33,27 +34,29 @@ fn challenge13() -> Vec<u8> {
     //Determine block length and total prefix+suffix length
     let base_length = profile_for("").len();
     let mut email_length = 0;
-    let mut test_length;
-    loop {
+    let mut test_length = base_length;
+
+    while test_length == base_length {
         email_length += 1;
         test_length = profile_for(&"A".repeat(email_length)).len();
-        if test_length != base_length {
-            break;
-        }
     }
 
     let block_length = test_length - base_length;
     let added_length = base_length - email_length;
     let mut prefix_length = 0;
 
-    //Keep extending email until we get 2 identical blocks to determine prefix length
+    //Keep extending email until we get 2 identical ciphertext blocks to determine prefix length
     loop {
         email_length += 1;
         let test = profile_for(&"A".repeat(email_length));
         if detect_ecb(&test) {
             for block_index in 0..(test.len() / block_length) - 1 {
-                let block1 = test[block_index*block_length..(block_index+1)*block_length].to_vec();
-                let block2 = test[(block_index+1)*block_length..(block_index+2)*block_length].to_vec();
+                let base_index = block_index * block_length;
+                let split_index = base_index + block_length;
+                let final_index = split_index + block_length;
+
+                let block1 = test[base_index..split_index].to_vec();
+                let block2 = test[split_index..final_index].to_vec();
                 if block1 == block2 {
                     prefix_length = block_length * (block_index - 1) + (block_length - (email_length % block_length));
                     break;

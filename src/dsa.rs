@@ -44,6 +44,7 @@ impl DSA {
         };
     }
 
+    ///Generates a new DSA instance using the given parameters
     pub fn new_from_parameters(p: &Mpz, q: &Mpz, g: &Mpz) -> DSA {
         //Generate random x mod q and y = g^x mod p
         let mut bytes: Vec<u8> = vec![];

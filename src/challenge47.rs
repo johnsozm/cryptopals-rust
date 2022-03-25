@@ -11,17 +11,18 @@ static MESSAGE: &str = "Short message";
 static KEY_LENGTH: usize = 1024;
 static PADDED_LENGTH: usize = (KEY_LENGTH / 8) - 1;
 
-//Returns true if ciphertext is properly padded, false otherwise
+///Returns true if ciphertext is properly padded, false otherwise
 fn pkcs_oracle(ciphertext: &Vec<u8>) -> bool {
     let plaintext = RSA_SERVER.decrypt(&ciphertext);
     return plaintext.len() == PADDED_LENGTH && plaintext[0] == 2;
 }
 
+///Returns ciphertext of the secret message
 fn generate_ciphertext() -> Vec<u8> {
     return RSA_SERVER.encrypt(&pkcs15_message_pad(&ascii_to_bytes(&MESSAGE), KEY_LENGTH));
 }
 
-//Returns lowest value x >= numerator/denominator
+///Returns lowest value x >= numerator/denominator
 fn ceiling(numerator: &Mpz, denominator: &Mpz) -> Mpz {
     let quotient = numerator / denominator;
     return if &quotient * denominator != *numerator {

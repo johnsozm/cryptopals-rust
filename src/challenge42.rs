@@ -19,7 +19,7 @@ fn solution42() -> RSASignature {
     block.push(0xff);
     block.push(0x00);
 
-    //Sequence header
+    //Append sequence header
     block.push(0x70); //Object is a constructed sequence
     block.push(0x15); //Total length is 21 bytes
 

@@ -20,9 +20,11 @@ pub fn xor_bytes(byte1: &Vec<u8>, byte2: &Vec<u8>) -> Vec<u8> {
 pub fn xor_repeating(byte1: &Vec<u8>, byte2: &Vec<u8>) -> Vec<u8> {
     return if byte1.len() == byte2.len() {
         xor_bytes(byte1, byte2)
-    } else if byte1.len() < byte2.len() {
+    }
+    else if byte1.len() < byte2.len() {
         xor_repeating(byte2, byte1)
-    } else {
+    }
+    else {
         let mut repeated: Vec<u8> = vec![];
         for i in 0..byte1.len() {
             repeated.push(byte2[i % byte2.len()]);
@@ -35,7 +37,7 @@ pub fn xor_repeating(byte1: &Vec<u8>, byte2: &Vec<u8>) -> Vec<u8> {
 ///Returns best key and its frequency score.
 pub fn guess_single_byte_xor(ciphertext: &Vec<u8>) -> (u8, f64) {
     let mut best_key: u8 = 0;
-    let mut best_score = 999.999;
+    let mut best_score = f64::INFINITY;
 
     //Try each possible byte key
     for i in 0..255 {
@@ -50,7 +52,7 @@ pub fn guess_single_byte_xor(ciphertext: &Vec<u8>) -> (u8, f64) {
             else if byte as char >= 'A' && byte as char <= 'Z' {
                 freq[byte as usize - 'A' as usize] += 1.0;
             }
-            //Don't count typical non-letter characters as unusual
+            //Don't count typically used non-letter characters as unusual
             else if byte as char == '.'
                 || byte as char == ','
                 || byte as char == '\''
@@ -98,6 +100,7 @@ fn hamming_distance(byte1: &Vec<u8>, byte2: &Vec<u8>) -> usize {
 
     let mut distance: usize = 0;
 
+    //For each byte pair, addd the 1 bits in b1 ^ b2 to the total distance
     for (b1, b2) in byte1.iter().zip(byte2) {
         let b = b1 ^ b2;
 
@@ -116,7 +119,7 @@ fn guess_key_length(ciphertext: &Vec<u8>) -> usize {
         panic!("Ciphertext is too short for this analysis!");
     }
 
-    let mut best_distance = 999.999;
+    let mut best_distance = f64::INFINITY;
     let mut best_length = 0;
 
     //For each possible length, compute the normalized Hamming distance.
@@ -149,7 +152,10 @@ fn guess_key_length(ciphertext: &Vec<u8>) -> usize {
 
 ///Guesses the multi-byte key used to XOR-encrypt a message
 pub fn guess_multi_byte_xor(ciphertext: &Vec<u8>) -> Vec<u8> {
+    //Guess key length in use
     let key_length = guess_key_length(&ciphertext);
+
+    //Split message into sub-messages of key_length bytes
     let mut sub_messages: Vec<Vec<u8>> = vec![vec![]; key_length];
     let mut modulus = 0;
 
@@ -158,6 +164,7 @@ pub fn guess_multi_byte_xor(ciphertext: &Vec<u8>) -> Vec<u8> {
         modulus = (modulus + 1) % key_length;
     }
 
+    //Guess key byte on each sub-message and add together to make a full key
     let mut key: Vec<u8> = vec![];
 
     for i in 0..key_length {

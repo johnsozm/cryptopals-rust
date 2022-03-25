@@ -13,6 +13,7 @@ lazy_static! {
     };
 }
 
+///Generates encryption of pad(message || secret)
 fn oracle(message: &Vec<u8>) -> Vec<u8> {
     let mut plaintext = message.clone();
     let mut secret = base64_to_bytes("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkgaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK");
@@ -37,11 +38,7 @@ fn challenge12() -> String {
     let block_length = test_length - base_length;
     let message_length = base_length - pad_length;
     let mut plaintext: Vec<u8> = vec![];
-    let mut last_bytes: Vec<u8> = vec![];
-
-    for _i in 0..block_length {
-        last_bytes.push(0);
-    }
+    let mut last_bytes: Vec<u8> = vec![0; block_length];
 
     //Determine message characters one at a time
     for i in 0..message_length {

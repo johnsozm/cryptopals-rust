@@ -15,17 +15,20 @@ lazy_static! {
     static ref IV: Vec<u8> = vec![0;16];
 }
 
+///Returns an intercepted CBC-MAC message with valid signature
 fn intercepted_mac() -> MAC {
     let message = ascii_to_bytes("from:12481632&tx_list=128374:1020.22;298566927;12.91");
     return create_cbc_mac(&message, &KEY, &IV);
 }
 
+///Generates valid CBC-MAC message from my account
 fn sign_message(message: &Vec<u8>) -> MAC {
     let mut full_message = ascii_to_bytes("from:8675309&tx_list=");
     full_message.append(&mut message.clone());
     return create_cbc_mac(&full_message, &KEY, &IV);
 }
 
+///Verifies that the given CBC-MAC message has a valid signature and transfers $1000000 to me
 fn verify_transfer(mac: &MAC) -> bool {
     let message = bytes_to_ascii(&mac.message);
     return message.starts_with("from:12481632&") && message.contains(";8675309:1000000.00") && verify_cbc_mac(mac, &KEY, &IV);

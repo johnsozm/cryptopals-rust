@@ -3,6 +3,8 @@ use crate::padding::pkcs7_pad;
 use crate::aes::{encrypt_ecb, encrypt_cbc, detect_ecb};
 use crate::converter::ascii_to_bytes;
 
+///Encrypts the given message with a random key/IV, and random padding at the head and tail
+///Returns (encryption, true) if ECB was used, (encryption, false) if CBC was used
 fn encrypt_random_padding(message: &Vec<u8>) -> (Vec<u8>, bool) {
     let head_pad: u8 = random();
     let tail_pad: u8 = random();
@@ -28,7 +30,8 @@ fn encrypt_random_padding(message: &Vec<u8>) -> (Vec<u8>, bool) {
     //Randomly decide whether to use ECB or CBC mode
     return if random() {
         (encrypt_ecb(&plaintext, &key), true)
-    } else {
+    }
+    else {
         let mut iv: Vec<u8> = vec![];
 
         //Generate random IV

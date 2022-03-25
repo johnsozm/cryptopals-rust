@@ -17,24 +17,29 @@ pub struct RSASignature {
 
 ///Generates a random prime of the given bit length
 fn generate_prime(bit_length: usize) -> Mpz {
+    //Compute desired byte length and how many extra bits this leaves
     let mut byte_length = bit_length / 8;
-    let trailing_bits = bit_length % 8;
-    if trailing_bits != 0 {
+    let leading_bits = bit_length % 8;
+    if leading_bits != 0 {
         byte_length += 1
     }
 
+    //Generate random bytes
     let mut bytes: Vec<u8> = vec![];
     for _i in 0..byte_length {
         bytes.push(random());
     }
 
-    bytes[0] %= 1 << trailing_bits;
-    bytes[0] |= 1 << (trailing_bits - 1);
+    //Ensure first byte starts at the right place
+    bytes[0] %= 1 << leading_bits;
+    bytes[0] |= 1 << (leading_bits - 1);
 
+    //Use mpz library to get the next prime above our random value
     let x = Mpz::from(&bytes[0..]);
     return x.nextprime();
 }
 
+///Computes the inverse of a modulo b, or returns None if a is not invertible.
 pub fn inverse_mod(a: &Mpz, b: &Mpz) -> Option<Mpz> {
     let mut t = Mpz::zero();
     let mut new_t = Mpz::one();
@@ -42,6 +47,7 @@ pub fn inverse_mod(a: &Mpz, b: &Mpz) -> Option<Mpz> {
     let mut new_r = a.clone();
     let mut tmp: Mpz;
 
+    //Extended Euclidean algorithm
     while new_r != Mpz::zero() {
         let q = &r / &new_r;
         tmp = new_t.clone();
@@ -73,12 +79,17 @@ impl RSA {
         };
 
         loop {
+            //Generate p and q to multiply to the correct length without being too close together
             let p = generate_prime(key_length / 2 - 10);
             let q = generate_prime(key_length / 2 + 10);
+
+            //Caclulate n = p*q. If n is too short, try again.
             ret.n = &p * &q;
             if ret.n.bit_length() != key_length {
                 continue;
             }
+
+            //Calculate d = e^-1 mod (p-1)(q-1). If no inverse exists, try again.
             let et = (&p - Mpz::one()) * (&q - Mpz::one());
             match inverse_mod(&ret.e, &et) {
                 None => continue,
@@ -104,6 +115,7 @@ impl RSA {
         return hex_to_bytes(&m.to_str_radix(16));
     }
 
+    ///Generates a PKCS#1.5 padded signature for this message with the instance's private key
     pub fn sign_message(&self, message: &Vec<u8>) -> RSASignature {
         let hash = Hash::MD4.digest(&message);
         let padded = pkcs15_signature_pad(&hash, self.n.bit_length(), Hash::MD4);
@@ -114,6 +126,7 @@ impl RSA {
         };
     }
 
+    ///Verifies a PKCS#1.5 padded signature with the instance's public key
     pub fn verify_signature(&self, signature: &RSASignature) -> bool {
         let h = Hash::MD4.digest(&signature.message);
         let v = signature.signature.powm(&self.e, &self.n);

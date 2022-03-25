@@ -11,19 +11,21 @@ lazy_static! {
     pub static ref K: Mpz = Mpz::from(3);
 }
 
-//Struct for holding login details for a single email address
+///Struct for holding login details for a single email address
 struct SimpleSRPDetails {
     salt: u64,
     v: Mpz,
     k: Vec<u8>
 }
 
+///Struct for an SRP server, which can maintain many login details
 pub struct SimpleSRPServer {
     logins: HashMap<String, SimpleSRPDetails>,
     public_key: Mpz,
     private_key: Mpz
 }
 
+///Struct for an SRP client, which can attempt to log into the server with its email + password
 pub struct SimpleSRPClient {
     email: String,
     password: String,
@@ -32,7 +34,7 @@ pub struct SimpleSRPClient {
 }
 
 impl SimpleSRPServer {
-    //Generate a new server instance with no login details stored
+    ///Generate a new server instance with no login details stored
     pub fn new() -> SimpleSRPServer {
         SimpleSRPServer {
             logins: HashMap::new(),
@@ -56,10 +58,10 @@ impl SimpleSRPServer {
         self.logins.insert(email.to_string(), SimpleSRPDetails{salt, v, k: vec![]});
     }
 
-    ///Generates a new random public/private keypair for the server to use, given the value of V for this session
+    ///Generates a new random keypair for the server to use, given the value of V for this session
     fn generate_keypair(&mut self) {
         let mut bytes: Vec<u8> = vec![];
-        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 more byte than bits
+        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 extra byte
 
         for _i in 0..target_len {
             bytes.push(random());
@@ -91,6 +93,7 @@ impl SimpleSRPServer {
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
         info.k = Hash::SHA256.digest(&s_bytes);
 
+        //Update this email's info with derived key and respond to client
         self.logins.insert(email.to_string(), info);
 
         return (salt, self.public_key.clone(), u);
@@ -126,10 +129,10 @@ impl SimpleSRPClient {
         return s;
     }
 
-    ///Generates a new random public/private keypair for the server to use
+    ///Generates a new random keypair for the client to use
     fn generate_keypair(&mut self) {
         let mut bytes: Vec<u8> = vec![];
-        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 more byte than bits
+        let target_len = (N.bit_length() / 8) + 1; //Want at least 1 extra byte
 
         for _i in 0..target_len {
             bytes.push(random());
@@ -161,6 +164,7 @@ impl SimpleSRPClient {
         let s_bytes = hex_to_bytes(&s.to_str_radix(16));
         let k = Hash::SHA256.digest(&s_bytes);
 
+        //Generate HMAC with the generated key
         return create_hmac(&salt.to_be_bytes().to_vec(), &k, Hash::SHA256);
     }
 }

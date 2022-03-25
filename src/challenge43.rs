@@ -9,9 +9,10 @@ fn challenge43() -> Mpz {
     let s = Mpz::from_str_radix("857042759984254168557880549501802188789837994940", 10).unwrap();
     let h = Mpz::from_str_radix("d2d0714f014a9784047eaeccf956520045c45265", 16).unwrap();
 
-    //Calculate r^-1
+    //Calculate r^-1 mod Q
     let r_inv = inverse_mod(&r, &DEFAULT_Q).unwrap();
 
+    //Brute-force all possible k up to 2^16
     for k_value in 1..=65536 {
         //Calculate x
         let k = Mpz::from(k_value);

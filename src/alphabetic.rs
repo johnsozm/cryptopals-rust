@@ -3,19 +3,15 @@ static LETTER_FREQUENCIES: [f64; 26] = [0.08167, 0.01492, 0.02782, 0.04253, 0.12
     0.02015, 0.06094, 0.06966, 0.00153, 0.00772, 0.04025, 0.02406, 0.06749, 0.07507, 0.01929,
     0.00095, 0.05987, 0.06327, 0.09056, 0.02758, 0.00978, 0.02360, 0.00150, 0.01974, 0.00074];
 
-///Kappa values for English for coincidence analysis
+///Letter coincidence probability for English text
 static KP: f64 = 0.067;
+
+///Letter coincidence probability for random text
 static KR: f64 = 0.0385;
 
 ///Function to check if a character is a letter - non-letter characters should be left alone
 fn is_letter(c: char) -> bool {
-    return if c >= 'a' && c <= 'z' {
-        true
-    } else if c >= 'A' && c <= 'Z' {
-        true
-    } else {
-        false
-    }
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
 ///Shifts a letter by the given offset, preserving case
@@ -24,10 +20,11 @@ fn shift_letter(c: char, offset: i8) -> char {
         return c;
     }
 
+    //Compute positive offset to avoid underflow
     let modulus = offset % 26;
     let positive_offset = if modulus < 0 {modulus + 26} else {modulus} as u8;
 
-
+    //Transform letter into corresponding number (a = 1, b = 2...)
     let letter_index =
         if c >= 'a' && c <= 'z' {
             c as u8 - 'a' as u8 + 1
@@ -36,10 +33,13 @@ fn shift_letter(c: char, offset: i8) -> char {
             c as u8 - 'A' as u8 + 1
         };
 
+    //Compute shift result
     let mut offset_index: u8 = (positive_offset + letter_index) % 26;
     if offset_index == 0 {
         offset_index = 26;
     }
+
+    //Transform back into letter and return
     return if c >= 'a' && c <= 'z' {
         ('a' as u8 + offset_index - 1) as char
     }
@@ -68,12 +68,12 @@ pub fn decrypt_caesar(ciphertext: &str, offset: i8) -> String {
 ///Returns best key and its frequency score.
 pub fn guess_caesar(ciphertext: &str) -> (u8, f64) {
     let mut best_key: u8 = 0;
-    let mut best_score = 999.999;
+    let mut best_score = f64::INFINITY;
 
     //Try each possible byte key
     for i in 0..26 as u8 {
         let candidate = decrypt_caesar(ciphertext, i as i8);
-        let mut freq = [0.0;27];
+        let mut freq = [0.0;26];
 
         //Calculate letter frequencies for the deciphered text
         for c in candidate.chars() {
@@ -87,14 +87,10 @@ pub fn guess_caesar(ciphertext: &str) -> (u8, f64) {
 
         //Determine how similar the letter frequencies are to English
         let mut score = 0.0;
-
         for i in 0..26 {
             freq[i] = freq[i] / (ciphertext.len() as f64);
             score += (freq[i] - LETTER_FREQUENCIES[i]).abs();
         }
-
-        //Add frequency of unusual characters to the score
-        score += freq[26] / (ciphertext.len() as f64);
 
         if score < best_score {
             best_score = score;
@@ -109,6 +105,7 @@ pub fn guess_caesar(ciphertext: &str) -> (u8, f64) {
 pub fn encrypt_vigenere(plaintext: &str, key: &str) -> String {
     let mut offsets: Vec<i8> = vec![];
 
+    //Transform key letters to offsets
     for c in key.chars() {
         if c >= 'a' && c <= 'z' {
             offsets.push((c as u8 - 'a' as u8) as i8);
@@ -124,6 +121,7 @@ pub fn encrypt_vigenere(plaintext: &str, key: &str) -> String {
     let mut ciphertext = String::from("");
     let mut i = 0;
 
+    //Apply shifts to each letter in plaintext and append to ciphertext
     for c in plaintext.chars() {
         if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
             ciphertext.push(shift_letter(c, offsets[i]));
@@ -141,6 +139,7 @@ pub fn encrypt_vigenere(plaintext: &str, key: &str) -> String {
 pub fn decrypt_vigenere(ciphertext: &str, key: &str) -> String {
     let mut offsets: Vec<i8> = vec![];
 
+    //Transform key letters to negative offsets
     for c in key.chars() {
         if c >= 'a' && c <= 'z' {
             offsets.push(-((c as u8 - 'a' as u8) as i8));
@@ -156,6 +155,7 @@ pub fn decrypt_vigenere(ciphertext: &str, key: &str) -> String {
     let mut plaintext = String::from("");
     let mut i = 0;
 
+    //Apply reversed shifts to each letter in ciphertext and append to plaintext
     for c in ciphertext.chars() {
         if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') {
             plaintext.push(shift_letter(c, offsets[i]));
@@ -186,6 +186,7 @@ fn guess_key_length(ciphertext: &str) -> usize {
         }
     }
 
+    //Calculate key length with Friedman test
     let mut ko = 0.0;
 
     for i in 0..26 {
@@ -201,9 +202,11 @@ fn guess_key_length(ciphertext: &str) -> usize {
 pub fn guess_vigenere_key(ciphertext: &str, key_length: usize) -> String {
     let estimate = if key_length == 0 {guess_key_length(ciphertext)} else {key_length};
     let mut best_key = String::from("");
-    let mut best_score = 9999999.0;
+    let mut best_score = f64::INFINITY;
 
+    //Apply Caesar cipher analysis to subsets of text to determine Vigenere key
     for key_length in estimate..=estimate + 3 {
+        //Split message into sub-messages of the length key_length
         let mut sub_messages: Vec<String> = vec![String::from(""); key_length];
         let mut modulus = 0;
 
@@ -214,6 +217,7 @@ pub fn guess_vigenere_key(ciphertext: &str, key_length: usize) -> String {
             }
         }
 
+        //For each sub-message, guess the key letter as for a Caesar cipher
         let mut key = String::from("");
         let mut total_score = 0.0;
 

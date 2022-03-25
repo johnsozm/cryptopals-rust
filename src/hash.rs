@@ -34,6 +34,7 @@ impl Hash {
 
 ///Generates the SHA-1 digest of a message
 fn digest_sha1(message: &Vec<u8>) -> Vec<u8> {
+    //Call arbitrary-state function with the default SHA-1 initial state
     digest_sha1_from_state(message, [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0], 0)
 }
 
@@ -62,6 +63,8 @@ pub fn digest_sha1_from_state(message: &Vec<u8>, h_init: [u32;5], total_length: 
             w[i] += (processed_message[64*chunk+4*i+2] as u32) << 8;
             w[i] += processed_message[64*chunk+4*i+3] as u32;
         }
+
+        //Generate remaining words
         for i in 16..80 {
             w[i] = (w[i -3] ^ w[i -8] ^ w[i -14] ^ w[i -16]).rotate_left(1);
         }
@@ -74,8 +77,9 @@ pub fn digest_sha1_from_state(message: &Vec<u8>, h_init: [u32;5], total_length: 
         let mut f: u32;
         let mut k: u32;
 
+        //Perform hashing steps for this block
         for i in 0..80 {
-            if i < 20{
+            if i < 20 {
                 f = (b & c) | ((!b) & d);
                 k = 0x5A827999;
             }
@@ -107,8 +111,8 @@ pub fn digest_sha1_from_state(message: &Vec<u8>, h_init: [u32;5], total_length: 
         h[4] = h[4].overflowing_add(e).0;
     }
 
+    //Construct output digest
     let mut hash = vec![];
-
     for i in 0..5 {
         hash.append(&mut h[i].to_be_bytes().to_vec());
     }
@@ -118,6 +122,7 @@ pub fn digest_sha1_from_state(message: &Vec<u8>, h_init: [u32;5], total_length: 
 
 ///Generates the MD4 digest of a message
 fn digest_md4(message: &Vec<u8>) -> Vec<u8> {
+    //Call arbitrary-state function with the MD4 initial state
     return digest_md4_from_state(&message, [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476], 0);
 }
 
@@ -134,6 +139,7 @@ pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4], total_leng
 
     //Append little-endian length
     padded_message.append(&mut ml.to_le_bytes().to_vec());
+
     //Initialize buffers
     let mut a = init_buffer[0];
     let mut b = init_buffer[1];
@@ -227,6 +233,7 @@ pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4], total_leng
 
 ///Generates the SHA256 digest of a message
 fn digest_sha256(message: &Vec<u8>) -> Vec<u8> {
+    //Calls arbitrary-state function with the SHA-256 initial state
     return digest_sha256_from_state(message, [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19], 0);
 }
 
@@ -278,6 +285,7 @@ fn digest_sha256_from_state(message: &Vec<u8>, h_init: [u32;8], total_length: u6
         let mut g = h_arr[6];
         let mut h = h_arr[7];
 
+        //Perform hash steps
         for i in 0..64 {
             let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
             let ch = (e & f) ^ ((!e) & g);
