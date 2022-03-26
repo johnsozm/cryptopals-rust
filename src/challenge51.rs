@@ -1,7 +1,8 @@
 use rand::random;
 use crate::converter::ascii_to_bytes;
 use deflate::deflate_bytes;
-use crate::aes::encrypt_ctr;
+use crate::aes::encrypt_cbc;
+use crate::padding::pkcs7_pad;
 
 ///Returns the compressed length of a header containing secret key and the given message
 fn compression_oracle(message: &Vec<u8>) -> usize {
@@ -10,16 +11,17 @@ fn compression_oracle(message: &Vec<u8>) -> usize {
     let mut header_bytes = ascii_to_bytes(&header);
     header_bytes.append(&mut message.clone());
 
-    //Compress header
-    let compressed_header = deflate_bytes(&header_bytes);
+    //Compress header and pad
+    let compressed_header = pkcs7_pad(&deflate_bytes(&header_bytes), 16);
 
     //Encrypt header and return length
     let mut key = vec![];
-    let nonce: u64 = random();
+    let mut iv = vec![];
     for _i in 0..16 {
         key.push(random());
+        iv.push(random());
     }
-    let encrypted_header = encrypt_ctr(&compressed_header, &key, nonce);
+    let encrypted_header = encrypt_cbc(&compressed_header, &key, &iv);
     return encrypted_header.len();
 }
 
@@ -38,26 +40,39 @@ fn challenge51() -> String {
     //Construct session token based on compression oracle results
     while session_token.len() < 43 && candidates.len() < 4096 {
         //Reset best length for each pass
-        best_length = usize::MAX;
+        best_length = 0;
 
         //Check all possible candidate + next character combinations with the compression oracle
         let mut new_candidates = vec![];
         for candidate in &candidates {
             //Construct base message
-            let mut message = ascii_to_bytes(&format!("sessionid={}{}", session_token, candidate));
-            message.push(0);
-            let last_index = message.len() - 1;
+            let message = ascii_to_bytes(&format!("sessionid={}{}", session_token, candidate));
 
             //Find shortest compression and log
             for next_digit in &base64_chars {
-                message[last_index] = *next_digit as u8;
-                let length = compression_oracle(&message);
+                //Compute base length of candidate message
+                let mut extended_message = message.clone();
+                extended_message.push(*next_digit as u8);
+                let base_length = compression_oracle(&extended_message);
 
-                if length == best_length {
+                //Add extra bytes to message until compression oracle size increases
+                let mut extra_bytes = 0;
+                loop {
+                    extra_bytes += 1;
+                    extended_message.push(random());
+                    let length = compression_oracle(&extended_message);
+
+                    if length > base_length || extra_bytes > 20 {
+                        break;
+                    }
+                }
+
+                //Keep candidates that needed the most extra bytes, since their compression was shortest
+                if extra_bytes == best_length {
                     new_candidates.push(candidate.clone() + &next_digit.to_string());
                 }
-                if length < best_length {
-                    best_length = length;
+                else if extra_bytes > best_length {
+                    best_length = extra_bytes;
                     new_candidates = vec![candidate.clone() + &next_digit.to_string()];
                 }
             }
@@ -66,7 +81,7 @@ fn challenge51() -> String {
         candidates = new_candidates;
 
         //If we've narrowed down to one candidate, log it and clear the candidate list
-        if candidates.len() == 1 {
+        if candidates.len() == 1 || session_token.len() + candidates[0].len() == 43 {
             session_token += &candidates[0];
             candidates = vec![String::from("")];
         }
