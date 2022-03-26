@@ -150,7 +150,7 @@ pub fn decrypt_ctr(ciphertext: &Vec<u8>, key: &Vec<u8>, nonce: u64) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::converter::{hex_to_bytes, ascii_to_bytes, base64_to_bytes, bytes_to_ascii};
+    use crate::converter::{hex_to_bytes, ascii_to_bytes, base64_to_bytes};
 
     #[test]
     fn test_encrypt_ecb() {
