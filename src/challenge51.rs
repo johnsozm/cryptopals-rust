@@ -3,21 +3,15 @@ use crate::converter::ascii_to_bytes;
 use deflate::deflate_bytes;
 use crate::aes::encrypt_ctr;
 
-lazy_static! {
-    static ref BASE_BYTES: Vec<u8> = {
-        ascii_to_bytes("POST / HTTP/1.1\nHost: hapless.com\nCookie: sessionid=TmV2ZXIgcmV2ZWFsIHRoZSBXdS1UYW5nIFNlY3JldCE=\nContent-Length: ")
-    };
-}
-
 ///Returns the compressed length of a header containing secret key and the given message
 fn compression_oracle(message: &Vec<u8>) -> usize {
     //Generate header bytes
-    let mut header = BASE_BYTES.clone();
-    header.append(&mut ascii_to_bytes(&(message.len().to_string() + "\n")));
-    header.append(&mut message.clone());
+    let header = format!("Host: hapless.com\nCookie: sessionid=TmV2ZXIgcmV2ZWFsIHRoZSBXdS1UYW5nIFNlY3JldCE=\nContent-Length: {}\n", message.len());
+    let mut header_bytes = ascii_to_bytes(&header);
+    header_bytes.append(&mut message.clone());
 
     //Compress header
-    let compressed_header = deflate_bytes(&header);
+    let compressed_header = deflate_bytes(&header_bytes);
 
     //Encrypt header and return length
     let mut key = vec![];
