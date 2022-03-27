@@ -83,7 +83,8 @@ pub fn pkcs15_signature_pad(message: &Vec<u8>, bit_length: usize, signature_algo
     match signature_algorithm { //Hash identifier values (might be wrong but doesn't really matter)
         Hash::SHA1 => padded.push(6),
         Hash::SHA256 => padded.push(11),
-        Hash::MD4 => padded.push(4)
+        Hash::MD4 => padded.push(4),
+        _ => padded.push(0) //Other hash functions should not be used but must have a case
     }
 
     //Append hash header
