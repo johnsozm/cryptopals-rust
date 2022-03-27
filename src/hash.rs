@@ -368,7 +368,7 @@ pub fn digest_bad_hash_16_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<
 ///Generates bad 32-bit hash from the given message
 fn digest_bad_hash_32(message: &Vec<u8>) -> Vec<u8> {
     //Calls arbitrary-state function with default value
-    return digest_bad_hash_64_from_state(message, &vec![0xde, 0xad, 0xbe, 0xef]);
+    return digest_bad_hash_32_from_state(message, &vec![0xde, 0xad, 0xbe, 0xef]);
 }
 
 ///Generates bad 32-bit hash from the given message and initial state
