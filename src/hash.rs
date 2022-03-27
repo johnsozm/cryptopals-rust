@@ -13,7 +13,7 @@ pub enum Hash {
     SHA256,
     MD4,
     BAD16,
-    BAD64
+    BAD32
 }
 
 ///Generic implementation which calls the appropriate digest method depending on the hash enum
@@ -24,7 +24,7 @@ impl Hash {
             Hash::SHA256 => digest_sha256(&message),
             Hash::MD4 => digest_md4(&message),
             Hash::BAD16 => digest_bad_hash_16(&message),
-            Hash::BAD64 => digest_bad_hash_64(&message)
+            Hash::BAD32 => digest_bad_hash_32(&message)
         }
     }
 
@@ -34,7 +34,7 @@ impl Hash {
             Hash::SHA256 => 64,
             Hash::MD4 => 64,
             Hash::BAD16 => 16,
-            Hash::BAD64 => 16
+            Hash::BAD32 => 16
         }
     }
 
@@ -44,7 +44,7 @@ impl Hash {
             Hash::SHA256 => 32,
             Hash::MD4 => 16,
             Hash::BAD16 => 2,
-            Hash::BAD64 => 8
+            Hash::BAD32 => 4
         }
     }
 }
@@ -365,14 +365,14 @@ pub fn digest_bad_hash_16_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<
     return hash;
 }
 
-///Generates bad 64-bit hash from the given message
-fn digest_bad_hash_64(message: &Vec<u8>) -> Vec<u8> {
+///Generates bad 32-bit hash from the given message
+fn digest_bad_hash_32(message: &Vec<u8>) -> Vec<u8> {
     //Calls arbitrary-state function with default value
-    return digest_bad_hash_64_from_state(message, &vec![0xde, 0xad, 0xbe, 0xef, 0xfe, 0xed, 0xab, 0xed]);
+    return digest_bad_hash_64_from_state(message, &vec![0xde, 0xad, 0xbe, 0xef]);
 }
 
-///Generates bad 64-bit hash from the given message and initial state
-pub fn digest_bad_hash_64_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
+///Generates bad 32-bit hash from the given message and initial state
+pub fn digest_bad_hash_32_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
     //Create message padded to a multiple of 16 bytes
     let mut padded_message = message.clone();
     while padded_message.len() % 16 != 0 {
@@ -385,7 +385,7 @@ pub fn digest_bad_hash_64_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<
         let message_block = padded_message[16*i..16*(i+1)].to_vec();
         let xor = xor_repeating(&message_block, &hash);
         let encrypted = encrypt_ecb(&xor, &BAD_HASH_64_KEY);
-        hash = encrypted[0..8].to_vec();
+        hash = encrypted[0..4].to_vec();
     }
 
     return hash;
