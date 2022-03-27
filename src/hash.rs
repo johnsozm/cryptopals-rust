@@ -346,7 +346,7 @@ fn digest_bad_hash_16(message: &Vec<u8>) -> Vec<u8> {
 }
 
 ///Generates bad 16-bit hash from the given message and initial state
-fn digest_bad_hash_16_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
+pub fn digest_bad_hash_16_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
     //Create message padded to a multiple of 16 bytes
     let mut padded_message = message.clone();
     while padded_message.len() % 16 != 0 {
@@ -372,7 +372,7 @@ fn digest_bad_hash_64(message: &Vec<u8>) -> Vec<u8> {
 }
 
 ///Generates bad 64-bit hash from the given message and initial state
-fn digest_bad_hash_64_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
+pub fn digest_bad_hash_64_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
     //Create message padded to a multiple of 16 bytes
     let mut padded_message = message.clone();
     while padded_message.len() % 16 != 0 {
