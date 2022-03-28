@@ -4,7 +4,7 @@ use crate::xor::xor_repeating;
 
 lazy_static! {
     static ref BAD_HASH_16_KEY: Vec<u8> = ascii_to_bytes("YELLOW SUBMARINE");
-    static ref BAD_HASH_64_KEY: Vec<u8> = ascii_to_bytes("MURDEROUS PICKLE");
+    static ref BAD_HASH_24_KEY: Vec<u8> = ascii_to_bytes("MURDEROUS PICKLE");
 }
 
 ///Enum of all implemented hash functions
@@ -13,7 +13,7 @@ pub enum Hash {
     SHA256,
     MD4,
     BAD16,
-    BAD32
+    BAD24
 }
 
 ///Generic implementation which calls the appropriate digest method depending on the hash enum
@@ -24,7 +24,7 @@ impl Hash {
             Hash::SHA256 => digest_sha256(&message),
             Hash::MD4 => digest_md4(&message),
             Hash::BAD16 => digest_bad_hash_16(&message),
-            Hash::BAD32 => digest_bad_hash_32(&message)
+            Hash::BAD24 => digest_bad_hash_24(&message)
         }
     }
 
@@ -34,7 +34,7 @@ impl Hash {
             Hash::SHA256 => 64,
             Hash::MD4 => 64,
             Hash::BAD16 => 16,
-            Hash::BAD32 => 16
+            Hash::BAD24 => 16
         }
     }
 
@@ -44,7 +44,7 @@ impl Hash {
             Hash::SHA256 => 32,
             Hash::MD4 => 16,
             Hash::BAD16 => 2,
-            Hash::BAD32 => 4
+            Hash::BAD24 => 3
         }
     }
 }
@@ -365,14 +365,14 @@ pub fn digest_bad_hash_16_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<
     return hash;
 }
 
-///Generates bad 32-bit hash from the given message
-fn digest_bad_hash_32(message: &Vec<u8>) -> Vec<u8> {
+///Generates bad 24-bit hash from the given message
+fn digest_bad_hash_24(message: &Vec<u8>) -> Vec<u8> {
     //Calls arbitrary-state function with default value
-    return digest_bad_hash_32_from_state(message, &vec![0xde, 0xad, 0xbe, 0xef]);
+    return digest_bad_hash_24_from_state(message, &vec![0xde, 0xad, 0xbe, 0xef]);
 }
 
-///Generates bad 32-bit hash from the given message and initial state
-pub fn digest_bad_hash_32_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
+///Generates bad 24-bit hash from the given message and initial state
+pub fn digest_bad_hash_24_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<u8> {
     //Create message padded to a multiple of 16 bytes
     let mut padded_message = message.clone();
     while padded_message.len() % 16 != 0 {
@@ -384,8 +384,8 @@ pub fn digest_bad_hash_32_from_state(message: &Vec<u8>, state: &Vec<u8>) -> Vec<
     for i in 0..padded_message.len()/16 {
         let message_block = padded_message[16*i..16*(i+1)].to_vec();
         let xor = xor_repeating(&message_block, &hash);
-        let encrypted = encrypt_ecb(&xor, &BAD_HASH_64_KEY);
-        hash = encrypted[0..4].to_vec();
+        let encrypted = encrypt_ecb(&xor, &BAD_HASH_24_KEY);
+        hash = encrypted[0..3].to_vec();
     }
 
     return hash;
