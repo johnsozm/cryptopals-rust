@@ -1,26 +1,27 @@
+use std::collections::HashMap;
 use crate::hash::{digest_bad_hash_16_from_state, Hash};
 use rand::random;
 
 ///Finds a collision in the 16-bit hash function given an initial hash state
 fn generate_collision(initial_state: &Vec<u8>) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
-    //Generate random block to collide to
-    let mut block1 = vec![];
-    for _i in 0..16 {
-        block1.push(random());
-    }
+    let mut hashes: HashMap<u16, Vec<u8>> = HashMap::new();
+    let mut random_block = vec![0; 16];
 
-    let target_hash = digest_bad_hash_16_from_state(&block1, initial_state);
-    let mut block2 = vec![0; 16];
+    //Birthday search for a hash collision
+    loop {
+        let hash = digest_bad_hash_16_from_state(&random_block, initial_state);
+        let hash_as_int = u16::from_be_bytes([hash[0], hash[1]]);
 
-    //Generate random blocks until we find collision with the first block, then return
-    while digest_bad_hash_16_from_state(&block2, initial_state) != target_hash {
-        block2.clear();
-        for _i in 0..16 {
-            block2.push(random());
+        if hashes.contains_key(&hash_as_int) {
+            return (hash, random_block, hashes.get(&hash_as_int).unwrap().clone());
+        }
+        else {
+            hashes.insert(hash_as_int, random_block.clone());
+            for i in 0..16 {
+                random_block[i] = random();
+            }
         }
     }
-
-    return (target_hash, block1, block2);
 }
 
 ///Generates 2^len messages which collide in the 16-bit hash function

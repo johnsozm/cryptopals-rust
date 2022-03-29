@@ -1,35 +1,58 @@
+use std::collections::HashMap;
 use rand::random;
 use crate::hash::digest_bad_hash_16_from_state;
 
 lazy_static! {
     static ref MESSAGE: Vec<u8> = {
         let mut m: Vec<u8> = vec![];
-        for _i in 0..16384 { //Generate message of 2^10 16-byte blocks
+        for _i in 0..1048576 { //Generate message of 2^16 16-byte blocks
             m.push(random());
         }
         m
     };
 }
 
-///Finds a collision between a message of 1 block and a message of length blocks
+///Finds a collision between a message of 16 bytes and a message of length bytes
 fn find_single_block_collision(length: usize, initial_state: &Vec<u8>) -> (Vec<u8>, Vec<u8>, Vec<u8>) {
-    //Initialize random block of specified length
-    let mut block1 = vec![];
-    for _i in 0..length {
-        block1.push(random());
+    //Create random message of specified length - 1 block
+    let mut block1 = vec![0; length-16];
+    for i in 0..length-16 {
+        block1[i] = random();
     }
-    let target_hash = digest_bad_hash_16_from_state(&block1, initial_state);
+    let final_state = digest_bad_hash_16_from_state(&block1, initial_state);
 
-    //Generate random single blocks until we find a collision
+    let mut block1_final = vec![0; 16];
     let mut block2 = vec![0; 16];
-    while digest_bad_hash_16_from_state(&block2, initial_state) != target_hash {
-        block2.clear();
-        for _i in 0..16 {
-            block2.push(random());
+    let mut hashes1: HashMap<u16, Vec<u8>> = HashMap::new();
+    let mut hashes2: HashMap<u16, Vec<u8>> = HashMap::new();
+
+    //Randomly generate block1 extensions and block2 until we find a collision, then return
+    loop {
+        let hash1 = digest_bad_hash_16_from_state(&block1_final, &final_state);
+        let hash1_as_int = u16::from_be_bytes([hash1[0], hash1[1]]);
+        if hashes2.contains_key(&hash1_as_int) {
+            block1.append(&mut block1_final);
+            return (hash1, block1, hashes2.get(&hash1_as_int).unwrap().clone());
+        }
+        else {
+            hashes1.insert(hash1_as_int, block1_final.clone());
+        }
+
+        let hash2 = digest_bad_hash_16_from_state(&block2, initial_state);
+        let hash2_as_int = u16::from_be_bytes([hash2[0], hash2[1]]);
+        if hashes1.contains_key(&hash2_as_int) {
+            block1.append(&mut hashes1.get(&hash2_as_int).unwrap().clone());
+            return (hash2, block1, block2);
+        }
+        else {
+            hashes2.insert(hash2_as_int, block2.clone());
+        }
+
+        for i in 0..16 {
+            block1_final[i] = random();
+            block2[i] = random();
         }
     }
-
-    return (target_hash, block1, block2);
 }
 
 fn challenge53() -> Vec<u8> {
@@ -37,8 +60,15 @@ fn challenge53() -> Vec<u8> {
     let mut long_segments = vec![];
     let mut short_segments = vec![];
     let mut state = vec![0xbe, 0xef];
+    let mut message_exponent = 0;
+    let mut predicted_len = 16;
 
-    for k in (1..=10).rev() {
+    while predicted_len < MESSAGE.len() {
+        message_exponent += 1;
+        predicted_len *= 2;
+    }
+
+    for k in (1..=message_exponent).rev() {
         let length = 16 * ((1 << (k-1)) + 1);
         let (new_state, m1, m2) = find_single_block_collision(length, &state);
         long_segments.push(m1);
@@ -60,9 +90,8 @@ fn challenge53() -> Vec<u8> {
     let mut bridge_block = vec![0; 16];
     let mut message_index= 0;
     while message_index == 0 {
-        bridge_block.clear();
-        for _i in 0..16 {
-            bridge_block.push(random());
+        for i in 0..16 {
+            bridge_block[i] = random();
         }
         let bridge_hash_bytes = digest_bad_hash_16_from_state(&bridge_block, &final_state);
         let bridge_hash = u16::from_be_bytes([bridge_hash_bytes[0], bridge_hash_bytes[1]]);
@@ -81,7 +110,8 @@ fn challenge53() -> Vec<u8> {
     for i in 0..long_segments.len() {
         let segment_length = long_segments[i].len() / 16;
         let remaining_segments = long_segments.len() - i - 1;
-        if remaining_length > segment_length && remaining_length - segment_length >= remaining_segments {
+        if (remaining_length > segment_length && remaining_length - segment_length >= remaining_segments)
+            || (remaining_length == 2 && segment_length == 2){
             remaining_length -= long_segments[i].len() / 16;
             forgery.append(&mut long_segments[i]);
         }

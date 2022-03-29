@@ -11,11 +11,11 @@ struct TreeNode {
 
 ///Generates a block which hashes to the same final state given two initial hash states
 fn generate_collision(state_a: &Vec<u8>, state_b: &Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+    //Brute-force search for a collision
     let mut block = vec![0; 16];
     while digest_bad_hash_16_from_state(&block, &state_a) != digest_bad_hash_16_from_state(&block, &state_b) {
-        block.clear();
-        for _i in 0..16 {
-            block.push(random());
+        for i in 0..16 {
+            block[i] = random();
         }
     }
 
