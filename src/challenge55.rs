@@ -273,7 +273,7 @@ fn get_intermediate_states(m: &Vec<u32>) -> (Vec<u32>, Vec<u32>, Vec<u32>, Vec<u
 }
 
 ///Modifies the given message to satisfy Wang's first and second round conditions
-fn modify_message(m: &Vec<u32>) -> Vec<u32> {
+fn modify_message_round1(m: &Vec<u32>) -> Vec<u32> {
     let (mut a, mut b, mut c, mut d) = get_intermediate_states(m);
     let mut m_mod = m.clone();
 
@@ -313,46 +313,42 @@ fn modify_message(m: &Vec<u32>) -> Vec<u32> {
     m_mod[14] = c[4].rotate_right(11).overflowing_sub(c[3]).0.overflowing_sub(f(d[4], a[4], b[3])).0;
     m_mod[15] = b[4].rotate_right(19).overflowing_sub(b[3]).0.overflowing_sub(f(c[4], d[4], a[4])).0;
 
-    //Temporary testing code
-    let (a, b, c, d) = get_intermediate_states(&m_mod);
-    let mut failed = 0;
+    return m_mod;
+}
 
-    for (var1, step1, var2, step2, bit) in &ROUND_1_CONDITIONS {
-        let expected_value = match var2 {
-            CONST => *step2 as u32,
-            A => get_bit(a[*step2], *bit),
-            B => get_bit(b[*step2], *bit),
-            C => get_bit(c[*step2], *bit),
-            D => get_bit(d[*step2], *bit)
+///Modifies the given message to correct a_5
+fn modify_message_round2(m: &Vec<u32>) -> Vec<u32> {
+    let mut m_mod = m.clone();
+
+    //Apply corrections to a_5
+    for i in [19, 26, 27, 29, 32] {
+        let (a, b, c, d) = get_intermediate_states(&m_mod);
+        let a_expected = {
+            if i == 19 {
+                get_bit(c[4], 19)
+            }
+            else if i == 27 {
+                0
+            }
+            else {
+                1
+            }
         };
-        let got_value = match var1 {
-            CONST => panic!("Illegally formed condition"),
-            A => get_bit(a[*step1], *bit),
-            B => get_bit(b[*step1], *bit),
-            C => get_bit(c[*step1], *bit),
-            D => get_bit(d[*step1], *bit)
-        };
-        if expected_value != got_value {
-            failed += 1;
-            let name1 = match var1 {
-                CONST => "const",
-                A => "a",
-                B => "b",
-                C => "c",
-                D => "d"
-            };
-            let name2 = match var2 {
-                CONST => "const",
-                A => "a",
-                B => "b",
-                C => "c",
-                D => "d"
-            };
-            println!("{}[{}][{}] != {}[{}][{}]", name1, step1, bit, name2, step2, bit);
+
+        if get_bit(a[5], i) != a_expected {
+            m_mod[0] ^= 1 << (i-4);
+            let a_1 = a[0].overflowing_add(m_mod[0]).0.overflowing_add(f(b[0], c[0], d[0])).0.rotate_left(3);
+            m_mod[1] = d[1].rotate_right(7).overflowing_sub(d[0]).0.overflowing_sub(f(a_1, b[0], c[0])).0;
+            let d_1 = d[0].overflowing_add(m_mod[1]).0.overflowing_add(f(a_1, b[0], c[0])).0.rotate_left(7);
+            m_mod[2] = c[1].rotate_right(11).overflowing_sub(c[0]).0.overflowing_sub(f(d_1, a_1, b[0])).0;
+            let c_1 = c[0].overflowing_add(m_mod[2]).0.overflowing_add(f(d_1, a_1, b[0])).0.rotate_left(11);
+            m_mod[3] = b[1].rotate_right(19).overflowing_sub(b[0]).0.overflowing_sub(f(c_1, d_1, a_1)).0;
+            let b_1 = b[0].overflowing_add(m_mod[3]).0.overflowing_add(f(c_1, d_1, a_1)).0.rotate_left(19);
+            m_mod[4] = a[2].rotate_right(3).overflowing_sub(a_1).0.overflowing_sub(f(b_1, c_1, d_1)).0;
         }
     }
 
-    println!("Failed {}/95 round 1 conditions", failed);
+    //TODO: Add d_5 and c_5 modifications to improve speed
 
     return m_mod;
 }
@@ -368,9 +364,10 @@ fn challenge55() -> (Vec<u8>, Vec<u8>) {
         }
 
         //Apply tweaks
-        m = modify_message(&m);
+        m = modify_message_round1(&m);
+        m = modify_message_round2(&m);
 
-        //Create M'
+        //Create M' from original message
         let mut m_prime = m.clone();
         m_prime[1] = m_prime[1].overflowing_add(1<<31).0;
         m_prime[2] = m_prime[2].overflowing_add(1<<31).0.overflowing_sub(1<<28).0;
@@ -391,7 +388,8 @@ fn challenge55() -> (Vec<u8>, Vec<u8>) {
             return (m_bytes, m_prime_bytes);
         }
 
-        if attempts > 10 {
+        //Exit with bad output if we make too many attempts
+        if attempts > 10000000 {
             return (vec![], vec![]);
         }
     }
