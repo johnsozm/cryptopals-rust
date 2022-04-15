@@ -9,6 +9,17 @@ enum ConditionVariable {
     D = 4
 }
 
+///MD4 helper functions
+fn f(x: u32, y: u32, z: u32) -> u32 {(x&y)|((!x)&z)}
+fn g(x: u32, y: u32, z: u32) -> u32 {(x&y)|(y&z)|(x&z)}
+fn h(x: u32, y: u32, z: u32) -> u32 {x^y^z}
+fn md4_add(base: u32, message: u32, offset: u32, function: u32, shift: u32) -> u32 {
+    return base.overflowing_add(message).0.overflowing_add(offset).0.overflowing_add(function).0.rotate_left(shift);
+}
+fn md4_subtract(base: u32, offset: u32, function: u32, shift: u32) -> u32 {
+    return base.rotate_right(shift).overflowing_sub(offset).0.overflowing_sub(function).0;
+}
+
 ///Wang's conditions on the round 1 intermediate values
 ///Read each tuple as (variable1, step1, variable2, step2, bit)
 static ROUND_1_CONDITIONS: [(ConditionVariable, usize, ConditionVariable, usize, u32); 95] = {[
@@ -109,11 +120,6 @@ static ROUND_1_CONDITIONS: [(ConditionVariable, usize, ConditionVariable, usize,
     (B, 4, CONST, 0, 30)
 ]};
 
-///MD4 helper functions
-fn f(x: u32, y: u32, z: u32) -> u32 {(x&y)|(!x&z)}
-fn g(x: u32, y: u32, z: u32) -> u32 {(x&y)|(x&z)|(y&z)}
-fn h(x: u32, y: u32, z: u32) -> u32 {x^y^z}
-
 ///Gets the specified bit (1-indexed) from the value - returns 0 or 1 as a u32
 ///Panics if bit index is not 1-32
 fn get_bit(value: u32, bit: u32) -> u32 {
@@ -128,6 +134,8 @@ fn get_bit(value: u32, bit: u32) -> u32 {
 ///Calculates intermediate MD4 states when processing m from the default initial state
 ///Panics if m is not 16 words long.
 fn get_intermediate_states(m: &Vec<u32>) -> (Vec<u32>, Vec<u32>, Vec<u32>, Vec<u32>) {
+
+
     if m.len() != 16 {
         panic!("Intermediate state function requires a 16-word input");
     }
@@ -148,117 +156,45 @@ fn get_intermediate_states(m: &Vec<u32>) -> (Vec<u32>, Vec<u32>, Vec<u32>, Vec<u
     let mut c_list = vec![c];
     let mut d_list = vec![d];
 
+    let round_1_words = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+    let round_2_words = [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15];
+    let round_3_words = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
 
     //Round 1
-    a = a.overflowing_add(x[0]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[1]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-    c = c.overflowing_add(x[2]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-    b = b.overflowing_add(x[3]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[4]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[5]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-    c = c.overflowing_add(x[6]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-    b = b.overflowing_add(x[7]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[8]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[9]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-    c = c.overflowing_add(x[10]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-    b = b.overflowing_add(x[11]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[12]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[13]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-    c = c.overflowing_add(x[14]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-    b = b.overflowing_add(x[15]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
+    for i in 0..4 {
+        a = md4_add(a, x[round_1_words[4*i]], 0,f(b, c, d), 3);
+        d = md4_add(d, x[round_1_words[4*i+1]], 0, f(a, b, c), 7);
+        c = md4_add(c, x[round_1_words[4*i+2]], 0, f(d, a, b), 11);
+        b = md4_add(b, x[round_1_words[4*i+3]], 0, f(c, d, a), 19);
+        a_list.push(a);
+        b_list.push(b);
+        c_list.push(c);
+        d_list.push(d);
+    }
 
     //Round 2
-    a = a.overflowing_add(x[0]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[4]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-    c = c.overflowing_add(x[8]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-    b = b.overflowing_add(x[12]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[1]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[5]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-    c = c.overflowing_add(x[9]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-    b = b.overflowing_add(x[13]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[2]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[6]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-    c = c.overflowing_add(x[10]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-    b = b.overflowing_add(x[14]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[3]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-    d = d.overflowing_add(x[7]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-    c = c.overflowing_add(x[11]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-    b = b.overflowing_add(x[15]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
+    for i in 0..4 {
+        a = md4_add(a, x[round_2_words[4*i]], 0x5a827999, g(b, c, d), 3);
+        d = md4_add(d, x[round_2_words[4*i+1]], 0x5a827999, g(a, b, c), 5);
+        c = md4_add(c, x[round_2_words[4*i+2]], 0x5a827999, g(d, a, b), 9);
+        b = md4_add(b, x[round_2_words[4*i+3]], 0x5a827999, g(c, d, a), 13);
+        a_list.push(a);
+        b_list.push(b);
+        c_list.push(c);
+        d_list.push(d);
+    }
 
     //Round 3
-    a = a.overflowing_add(x[0]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-    d = d.overflowing_add(x[8]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-    c = c.overflowing_add(x[4]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-    b = b.overflowing_add(x[12]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[2]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-    d = d.overflowing_add(x[10]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-    c = c.overflowing_add(x[6]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-    b = b.overflowing_add(x[14]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[1]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-    d = d.overflowing_add(x[9]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-    c = c.overflowing_add(x[5]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-    b = b.overflowing_add(x[13]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
-
-    a = a.overflowing_add(x[3]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-    d = d.overflowing_add(x[11]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-    c = c.overflowing_add(x[7]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-    b = b.overflowing_add(x[15]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
-    a_list.push(a);
-    b_list.push(b);
-    c_list.push(c);
-    d_list.push(d);
+    for i in 0..4 {
+        a = md4_add(a, x[round_3_words[4*i]], 0x6ed9eba1, h(b, c, d), 3);
+        d = md4_add(d, x[round_3_words[4*i+1]], 0x6ed9eba1, h(a, b, c), 9);
+        c = md4_add(c, x[round_3_words[4*i+2]], 0x6ed9eba1, h(d, a, b), 11);
+        b = md4_add(b, x[round_3_words[4*i+3]], 0x6ed9eba1, h(c, d, a), 15);
+        a_list.push(a);
+        b_list.push(b);
+        c_list.push(c);
+        d_list.push(d);
+    }
 
     a = a.overflowing_add(a_init).0;
     b = b.overflowing_add(b_init).0;
@@ -296,22 +232,22 @@ fn modify_message_round1(m: &Vec<u32>) -> Vec<u32> {
     }
 
     //Compute modified message words
-    m_mod[0] = a[1].rotate_right(3).overflowing_sub(a[0]).0.overflowing_sub(f(b[0], c[0], d[0])).0;
-    m_mod[1] = d[1].rotate_right(7).overflowing_sub(d[0]).0.overflowing_sub(f(a[1], b[0], c[0])).0;
-    m_mod[2] = c[1].rotate_right(11).overflowing_sub(c[0]).0.overflowing_sub(f(d[1], a[1], b[0])).0;
-    m_mod[3] = b[1].rotate_right(19).overflowing_sub(b[0]).0.overflowing_sub(f(c[1], d[1], a[1])).0;
-    m_mod[4] = a[2].rotate_right(3).overflowing_sub(a[1]).0.overflowing_sub(f(b[1], c[1], d[1])).0;
-    m_mod[5] = d[2].rotate_right(7).overflowing_sub(d[1]).0.overflowing_sub(f(a[2], b[1], c[1])).0;
-    m_mod[6] = c[2].rotate_right(11).overflowing_sub(c[1]).0.overflowing_sub(f(d[2], a[2], b[1])).0;
-    m_mod[7] = b[2].rotate_right(19).overflowing_sub(b[1]).0.overflowing_sub(f(c[2], d[2], a[2])).0;
-    m_mod[8] = a[3].rotate_right(3).overflowing_sub(a[2]).0.overflowing_sub(f(b[2], c[2], d[2])).0;
-    m_mod[9] = d[3].rotate_right(7).overflowing_sub(d[2]).0.overflowing_sub(f(a[3], b[2], c[2])).0;
-    m_mod[10] = c[3].rotate_right(11).overflowing_sub(c[2]).0.overflowing_sub(f(d[3], a[3], b[2])).0;
-    m_mod[11] = b[3].rotate_right(19).overflowing_sub(b[2]).0.overflowing_sub(f(c[3], d[3], a[3])).0;
-    m_mod[12] = a[4].rotate_right(3).overflowing_sub(a[3]).0.overflowing_sub(f(b[3], c[3], d[3])).0;
-    m_mod[13] = d[4].rotate_right(7).overflowing_sub(d[3]).0.overflowing_sub(f(a[4], b[3], c[3])).0;
-    m_mod[14] = c[4].rotate_right(11).overflowing_sub(c[3]).0.overflowing_sub(f(d[4], a[4], b[3])).0;
-    m_mod[15] = b[4].rotate_right(19).overflowing_sub(b[3]).0.overflowing_sub(f(c[4], d[4], a[4])).0;
+    m_mod[0] = md4_subtract(a[1], a[0], f(b[0], c[0], d[0]), 3);
+    m_mod[1] = md4_subtract(d[1], d[0], f(a[1], b[0], c[0]), 7);
+    m_mod[2] = md4_subtract(c[1], c[0], f(d[1], a[1], b[0]), 11);
+    m_mod[3] = md4_subtract(b[1], b[0], f(c[1], d[1], a[1]), 19);
+    m_mod[4] = md4_subtract(a[2], a[1], f(b[1], c[1], d[1]), 3);
+    m_mod[5] = md4_subtract(d[2], d[1], f(a[2], b[1], c[1]), 7);
+    m_mod[6] = md4_subtract(c[2], c[1], f(d[2], a[2], b[1]), 11);
+    m_mod[7] = md4_subtract(b[2], b[1], f(c[2], d[2], a[2]), 19);
+    m_mod[8] = md4_subtract(a[3], a[2], f(b[2], c[2], d[2]), 3);
+    m_mod[9] = md4_subtract(d[3], d[2], f(a[3], b[2], c[2]), 7);
+    m_mod[10] = md4_subtract(c[3], c[2], f(d[3], a[3], b[2]), 11);
+    m_mod[11] = md4_subtract(b[3], b[2], f(c[3], d[3], a[3]), 19);
+    m_mod[12] = md4_subtract(a[4], a[3], f(b[3], c[3], d[3]), 3);
+    m_mod[13] = md4_subtract(d[4], d[3], f(a[4], b[3], c[3]), 7);
+    m_mod[14] = md4_subtract(c[4], c[3], f(d[4], a[4], b[3]), 11);
+    m_mod[15] = md4_subtract(b[4], b[3], f(c[4], d[4], a[4]), 19);
 
     return m_mod;
 }
@@ -325,7 +261,7 @@ fn modify_message_round2(m: &Vec<u32>) -> Vec<u32> {
         let (a, b, c, d) = get_intermediate_states(&m_mod);
         let a_expected = {
             if i == 19 {
-                get_bit(c[4], 19)
+                get_bit(c[4], i)
             }
             else if i == 27 {
                 0
@@ -337,18 +273,16 @@ fn modify_message_round2(m: &Vec<u32>) -> Vec<u32> {
 
         if get_bit(a[5], i) != a_expected {
             m_mod[0] ^= 1 << (i-4);
-            let a_1 = a[0].overflowing_add(m_mod[0]).0.overflowing_add(f(b[0], c[0], d[0])).0.rotate_left(3);
-            m_mod[1] = d[1].rotate_right(7).overflowing_sub(d[0]).0.overflowing_sub(f(a_1, b[0], c[0])).0;
-            let d_1 = d[0].overflowing_add(m_mod[1]).0.overflowing_add(f(a_1, b[0], c[0])).0.rotate_left(7);
-            m_mod[2] = c[1].rotate_right(11).overflowing_sub(c[0]).0.overflowing_sub(f(d_1, a_1, b[0])).0;
-            let c_1 = c[0].overflowing_add(m_mod[2]).0.overflowing_add(f(d_1, a_1, b[0])).0.rotate_left(11);
-            m_mod[3] = b[1].rotate_right(19).overflowing_sub(b[0]).0.overflowing_sub(f(c_1, d_1, a_1)).0;
-            let b_1 = b[0].overflowing_add(m_mod[3]).0.overflowing_add(f(c_1, d_1, a_1)).0.rotate_left(19);
-            m_mod[4] = a[2].rotate_right(3).overflowing_sub(a_1).0.overflowing_sub(f(b_1, c_1, d_1)).0;
+            let a_1 = md4_add(a[0], m_mod[0], 0, f(b[0], c[0], d[0]), 3);
+            m_mod[1] = md4_subtract(d[1], d[0], f(a_1, b[0], c[0]), 7);
+            let d_1 = md4_add(d[0], m_mod[1], 0, f(a_1, b[0], c[0]), 7);
+            m_mod[2] = md4_subtract(c[1], c[0], f(d_1, a_1, b[0]), 11);
+            let c_1 = md4_add(c[0], m_mod[2], 0, f(d_1, a_1, b[0]), 11);
+            m_mod[3] = md4_subtract(b[1], b[0], f(c_1, d_1, a_1), 19);
+            let b_1 = md4_add(b[0], m_mod[3], 0, f(c_1, d_1, a_1), 19);
+            m_mod[4] = md4_subtract(a[2], a_1, f(b_1, c_1, d_1), 3);
         }
     }
-
-    //TODO: Add d_5 and c_5 modifications to improve speed
 
     return m_mod;
 }

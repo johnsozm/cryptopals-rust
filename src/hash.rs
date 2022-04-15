@@ -137,6 +137,8 @@ pub fn digest_sha1_from_state(message: &Vec<u8>, h_init: [u32;5], total_length: 
     return hash;
 }
 
+
+
 ///Generates the MD4 digest of a message
 fn digest_md4(message: &Vec<u8>) -> Vec<u8> {
     //Call arbitrary-state function with the MD4 initial state
@@ -145,6 +147,14 @@ fn digest_md4(message: &Vec<u8>) -> Vec<u8> {
 
 ///Generates the MD4 digest of a message using the given internal state
 pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4], total_length: u64) -> Vec<u8> {
+    ///MD4 helper functions
+    fn f(x: u32, y: u32, z: u32) -> u32 {(x&y)|((!x)&z)}
+    fn g(x: u32, y: u32, z: u32) -> u32 {(x&y)|(y&z)|(x&z)}
+    fn h(x: u32, y: u32, z: u32) -> u32 {x^y^z}
+    fn md4_add(base: u32, message: u32, offset: u32, function: u32, shift: u32) -> u32 {
+        return base.overflowing_add(message).0.overflowing_add(offset).0.overflowing_add(function).0.rotate_left(shift);
+    }
+
     let mut padded_message = message.clone();
     let ml: u64 = if total_length == 0 {(message.len() * 8) as u64} else {total_length};
 
@@ -178,59 +188,34 @@ pub fn digest_md4_from_state(message: &Vec<u8>, init_buffer: [u32;4], total_leng
             x[j] += padded_message[64*i+4*j] as u32;
         }
 
+        //Message word order for each round
+        let round_1_words = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        let round_2_words = [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15];
+        let round_3_words = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15];
+
         //Round 1
-        a = a.overflowing_add(x[0]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[1]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-        c = c.overflowing_add(x[2]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-        b = b.overflowing_add(x[3]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
-        a = a.overflowing_add(x[4]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[5]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-        c = c.overflowing_add(x[6]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-        b = b.overflowing_add(x[7]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
-        a = a.overflowing_add(x[8]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[9]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-        c = c.overflowing_add(x[10]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-        b = b.overflowing_add(x[11]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
-        a = a.overflowing_add(x[12]).0.overflowing_add((b&c)|((!b)&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[13]).0.overflowing_add((a&b)|((!a)&c)).0.rotate_left(7);
-        c = c.overflowing_add(x[14]).0.overflowing_add((d&a)|((!d)&b)).0.rotate_left(11);
-        b = b.overflowing_add(x[15]).0.overflowing_add((c&d)|((!c)&a)).0.rotate_left(19);
+        for i in 0..4 {
+            a = md4_add(a, x[round_1_words[4*i]], 0,f(b, c, d), 3);
+            d = md4_add(d, x[round_1_words[4*i+1]], 0, f(a, b, c), 7);
+            c = md4_add(c, x[round_1_words[4*i+2]], 0, f(d, a, b), 11);
+            b = md4_add(b, x[round_1_words[4*i+3]], 0, f(c, d, a), 19);
+        }
 
         //Round 2
-        a = a.overflowing_add(x[0]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[4]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-        c = c.overflowing_add(x[8]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-        b = b.overflowing_add(x[12]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
-        a = a.overflowing_add(x[1]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[5]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-        c = c.overflowing_add(x[9]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-        b = b.overflowing_add(x[13]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
-        a = a.overflowing_add(x[2]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[6]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-        c = c.overflowing_add(x[10]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-        b = b.overflowing_add(x[14]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
-        a = a.overflowing_add(x[3]).0.overflowing_add(0x5a827999).0.overflowing_add((b&c)|(c&d)|(b&d)).0.rotate_left(3);
-        d = d.overflowing_add(x[7]).0.overflowing_add(0x5a827999).0.overflowing_add((a&b)|(b&c)|(a&c)).0.rotate_left(5);
-        c = c.overflowing_add(x[11]).0.overflowing_add(0x5a827999).0.overflowing_add((d&a)|(a&b)|(d&b)).0.rotate_left(9);
-        b = b.overflowing_add(x[15]).0.overflowing_add(0x5a827999).0.overflowing_add((c&d)|(d&a)|(c&a)).0.rotate_left(13);
+        for i in 0..4 {
+            a = md4_add(a, x[round_2_words[4*i]], 0x5a827999, g(b, c, d), 3);
+            d = md4_add(d, x[round_2_words[4*i+1]], 0x5a827999, g(a, b, c), 5);
+            c = md4_add(c, x[round_2_words[4*i+2]], 0x5a827999, g(d, a, b), 9);
+            b = md4_add(b, x[round_2_words[4*i+3]], 0x5a827999, g(c, d, a), 13);
+        }
 
         //Round 3
-        a = a.overflowing_add(x[0]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-        d = d.overflowing_add(x[8]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-        c = c.overflowing_add(x[4]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-        b = b.overflowing_add(x[12]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
-        a = a.overflowing_add(x[2]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-        d = d.overflowing_add(x[10]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-        c = c.overflowing_add(x[6]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-        b = b.overflowing_add(x[14]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
-        a = a.overflowing_add(x[1]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-        d = d.overflowing_add(x[9]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-        c = c.overflowing_add(x[5]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-        b = b.overflowing_add(x[13]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
-        a = a.overflowing_add(x[3]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(b^c^d).0.rotate_left(3);
-        d = d.overflowing_add(x[11]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(a^b^c).0.rotate_left(9);
-        c = c.overflowing_add(x[7]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(d^a^b).0.rotate_left(11);
-        b = b.overflowing_add(x[15]).0.overflowing_add(0x6ed9eba1).0.overflowing_add(c^d^a).0.rotate_left(15);
+        for i in 0..4 {
+            a = md4_add(a, x[round_3_words[4*i]], 0x6ed9eba1, h(b, c, d), 3);
+            d = md4_add(d, x[round_3_words[4*i+1]], 0x6ed9eba1, h(a, b, c), 9);
+            c = md4_add(c, x[round_3_words[4*i+2]], 0x6ed9eba1, h(d, a, b), 11);
+            b = md4_add(b, x[round_3_words[4*i+3]], 0x6ed9eba1, h(c, d, a), 15);
+        }
 
         a = a.overflowing_add(a_init).0;
         b = b.overflowing_add(b_init).0;
