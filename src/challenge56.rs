@@ -7,8 +7,8 @@ fn get_ciphertext(request: &Vec<u8>) -> Vec<u8> {
     let mut message = request.clone();
     message.append(&mut COOKIE.to_vec());
 
-    let mut key = vec![0; 256];
-    for i in 0..256 {
+    let mut key = vec![0; 16];
+    for i in 0..16 {
         key[i] = random();
     }
 
