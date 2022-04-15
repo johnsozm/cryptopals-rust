@@ -31,6 +31,7 @@ mod hash;
 mod mac;
 mod mt19937;
 mod padding;
+mod rc4;
 mod rsa;
 mod srp;
 mod srp_simple;
