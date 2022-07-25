@@ -6,9 +6,9 @@ pub fn encrypt_rc4(plaintext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
     }
 
     //Digest key
-    let mut s = vec![];
+    let mut s = vec![0; 256];
     for i in 0..256 {
-        s.push(i);
+        s[i] = i;
     }
     let mut j: usize = 0;
     for i in 0..256 {
@@ -18,7 +18,7 @@ pub fn encrypt_rc4(plaintext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
         s[j] = tmp;
     }
 
-    let mut ciphertext = vec![];
+    let mut ciphertext = vec![0; plaintext.len()];
     let mut i = 0;
     j = 0;
     for n in 0..plaintext.len() {
@@ -33,7 +33,7 @@ pub fn encrypt_rc4(plaintext: &Vec<u8>, key: &Vec<u8>) -> Vec<u8> {
 
         //Generate next keystream byte and xor with next plaintext byte
         let k = s[(s[i] + s[j]) % 256] as u8;
-        ciphertext.push(plaintext[n] ^ k);
+        ciphertext[n] = plaintext[n] ^ k;
     }
 
     return ciphertext;
