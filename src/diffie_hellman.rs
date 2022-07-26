@@ -21,7 +21,7 @@ pub struct DiffieHellman {
     pub p: Mpz,
     pub g: Mpz,
     pub public_key: Mpz,
-    private_key: Mpz,
+    pub private_key: Mpz,
     s: Mpz,
     aes_key: Vec<u8>
 }
