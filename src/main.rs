@@ -29,6 +29,7 @@ mod diffie_hellman;
 mod dsa;
 mod hash;
 mod mac;
+mod math_tools;
 mod mt19937;
 mod padding;
 mod rc4;
@@ -96,6 +97,7 @@ mod challenge53;
 mod challenge54;
 mod challenge55;
 mod challenge56;
+mod challenge57;
 
 fn main() {
     /*let file = File::open("challenge10.txt");
